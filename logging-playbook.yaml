@@ -17,7 +17,7 @@
       ansible.windows.win_shell: |
         $config_path = 'C:\Program Files\Suricata\suricata.yaml'
         Invoke-WebRequest -Uri 'https://rules.emergingthreats.net/open/suricata/emerging-all.rules' -OutFile 'C:\Program Files\Suricata\rules\emerging-all.rules' -UseBasicParsing
-        Invoke-WebRequest -Uri 'https://github.com/maxgriff/AnsibleScripts/windows-suricata.yaml' -OutFile $config_path -UseBasicParsing
+        Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/windows-suricata.yaml' -OutFile $config_path -UseBasicParsing
         $network = Get-NetIPInterface | Where-Object { $_.ConnectionState -eq 'Connected' -and $_.InterfaceAlias -notlike '*Loopback*' -and $_.AddressFamily -eq 'IPv4' } | Sort-Object -Property InterfaceMetric
         $interface_id = $network[0].InterfaceIndex
         $ip_addr = (Get-NetIPAddress -InterfaceIndex $interface_id | Where-Object {$_.AddressFamily -eq 'IPv4'}).IPAddress
@@ -36,12 +36,19 @@
         - name: Install and Start Suricata on Ubuntu/Debian
           become: yes
           shell: |
-            add-apt-repository -y ppa:oisf/suricata-stable
-            apt install -y suricata
-            systemctl enable suricata
+            echo "Downloading Suricata..."
+            add-apt-repository -y ppa:oisf/suricata-stable > /dev/null
+            apt install -y suricata > /dev/null
+            
+            echo "Suricata Installed"
+            systemctl enable suricata > /dev/null
             systemctl stop suricata
-            curl "https://github.com/maxgriff/AnsibleScipts/linux-suricata.yaml" > /etc/suricata/suricata.yaml
-            apt install -y jq
+            
+            echo "downloading config template"
+            curl "https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/linux-suricata.yaml" > /etc/suricata/suricata.yaml
+            apt install -y jq > /dev/null
+            
+            echo "configuring"
             inter=$(ip -p -j route show default | jq -r ".[0].dev")
             IP=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f1)
             CIDR=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f2)
@@ -61,10 +68,13 @@
             if [ $NETID = "" ]; then
               NETID=$IP
             fi
-            sed -i "s/<IP-ADDRESS>/$NETID/g" /etc/suricata/suricata.yaml
-            sed -i "s/<INTERFACE>/$inter/g" /etc/suricata/suricata.yaml
+            sed -i "s@<IP-ADDRESS>@$NETID@g" /etc/suricata/suricata.yaml
+            sed -i "s@<INTERFACE>@$inter@g" /etc/suricata/suricata.yaml
+            
+            echo "updating suricata"
             suricata-update
             systemctl start suricata
+            apt remove -y jq > /dev/null
           when: ansible_os_family == 'Debian'
 
             
