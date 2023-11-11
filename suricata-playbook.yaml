@@ -1,153 +1,151 @@
 - name: Install Suricata on all systems
+  hosts: linux_hosts,windows_hosts,manager
   
   tasks:
-    - name: Install Suricata on Windows 
+  - name: Install Suricata on Windows 
+    become: yes
+    ansible.windows.win_shell: |
+      Invoke-WebRequest -Uri 'https://npcap.com/dist/npcap-1.78.exe' -OutFile 'C:\Temp\npcap-1.78.exe' -UseBasicParsing
+      Start-Process -FilePath 'C:\Temp\npcap-1.78.exe' -ArgumentList '/S' -Wait
+      Invoke-WebRequest -Uri 'https://www.openinfosecfoundation.org/download/windows/Suricata-7.0.2-1-64bit.msi' -OutFile 'C:\Temp\Suricata-7.0.2-1.msi' -UseBasicParsing
+      Start-Process -FilePath 'C:\Temp\Suricata-7.0.2-1.msi' -ArgumentList '/qn' -Wait
+    args:
+      executable: powershell.exe
+    when: '"Windows" in ansible_system'
+
+
+  - name: Configure and Run Suricata on Windows
+    become: yes
+    ansible.windows.win_shell: |
+      $config_path = 'C:\Program Files\Suricata\suricata.yaml'
+      Invoke-WebRequest -Uri 'https://rules.emergingthreats.net/open/suricata/emerging-all.rules' -OutFile 'C:\Program Files\Suricata\rules\emerging-all.rules' -UseBasicParsing
+      Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/windows-suricata.yaml' -OutFile $config_path -UseBasicParsing
+      $network = Get-NetIPInterface | Where-Object { $_.ConnectionState -eq 'Connected' -and $_.InterfaceAlias -notlike '*Loopback*' -and $_.AddressFamily -eq 'IPv4' } | Sort-Object -Property InterfaceMetric
+      $interface_id = $network[0].InterfaceIndex
+      $ip_addr = (Get-NetIPAddress -InterfaceIndex $interface_id | Where-Object { $_.AddressFamily -eq 'IPv4' }).IPAddress
+      $config = Get-Content -Path $config_path
+      $new_config = $config -replace '<IP-ADDRESS>', $ip_addr
+      $new_config | Set-Content -Path $config_path
+      cd 'C:\Program Files\Suricata'
+      echo 'Starting Suricata on $ip_adddr'
+      .\Suricata.exe -c suricata.yaml -i $ip_addr --service-install
+    when: '"Windows" in ansible_system'
+
+  - name: Install Suricata on Linux
+    block:
+    - name: Setup on Ubuntu/Debian
       become: yes
-      ansible.windows.win_shell: |
-        Invoke-WebRequest -Uri 'https://npcap.com/dist/npcap-1.78.exe' -OutFile 'C:\Temp\npcap-1.78.exe' -UseBasicParsing
-        Start-Process -FilePath 'C:\Temp\npcap-1.78.exe' -ArgumentList '/S' -Wait
-        Invoke-WebRequest -Uri 'https://www.openinfosecfoundation.org/download/windows/Suricata-7.0.2-1-64bit.msi' -OutFile 'C:\Temp\Suricata-7.0.2-1.msi' -UseBasicParsing
-        Start-Process -FilePath 'C:\Temp\Suricata-7.0.2-1.msi' -ArgumentList '/qn' -Wait
-      args:
-        executable: powershell.exe
-      when: '"Windows" in ansible_system'
+      shell: |
+        echo "Downloading Suricata..."
+        add-apt-repository -y ppa:oisf/suricata-stable > /dev/null
+        apt install -y suricata > /dev/null
+        apt install -y jq > /dev/null  
+        echo "Suricata Installed"
+      when: ansible_facts['os_family'] == 'Debian'
 
-    - name: Get Suricata Configured and Running on Windows
+    - name: Setup on Alpine
       become: yes
-      ansible.windows.win_shell: |
-        $config_path = 'C:\Program Files\Suricata\suricata.yaml'
-        Invoke-WebRequest -Uri 'https://rules.emergingthreats.net/open/suricata/emerging-all.rules' -OutFile 'C:\Program Files\Suricata\rules\emerging-all.rules' -UseBasicParsing
-        Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/windows-suricata.yaml' -OutFile $config_path -UseBasicParsing
-        $network = Get-NetIPInterface | Where-Object { $_.ConnectionState -eq 'Connected' -and $_.InterfaceAlias -notlike '*Loopback*' -and $_.AddressFamily -eq 'IPv4' } | Sort-Object -Property InterfaceMetric
-        $interface_id = $network[0].InterfaceIndex
-        $ip_addr = (Get-NetIPAddress -InterfaceIndex $interface_id | Where-Object {$_.AddressFamily -eq 'IPv4'}).IPAddress
-        $config = Get-Content -Path $config_path
-        $new_config = $config -replace '<IP-ADDRESS>', $ip_addr
-        $new_config | Set-Content -Path $config_path
-        cd 'C:\Program Files\Suricata\'
-        .\Suricata.exe -c suricata.yaml -i $ip_addr --service-installi\
-        start-service Suricata
-      args:
-        executable: powershell.exe
-      when: '"Windows" in ansible_system'
+      shell: |
+        echo "Downloading Suricata..."
+        echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
+        apk --no-interactive update > /dev/null
+        apk --no-interactive add suricata > /dev/null
+        apk --nointeractive add jq > /dev/null  
+        echo "Suricata Installed"
+      when: ansible_facts['os_family'] == 'Alpine'
 
-    - name: Install Suricata on Linux
-      block:
-        - name: Setup on Ubuntu/Debian
-          become: yes
-          shell: |
-            echo "Downloading Suricata..."
-            add-apt-repository -y ppa:oisf/suricata-stable > /dev/null
-            apt install -y suricata > /dev/null
-            apt install -y jq > /dev/null  
-            echo "Suricata Installed"
-          when: ansible_facts['os_family'] == 'Debian'
-
-        - name: Setup on Alpine
-          become: yes
-          shell: |
-            echo "Downloading Suricata..."
-            echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
-            apk --no-interactive update > /dev/null
-            apk --no-interactive add suricata > /dev/null
-            apk --nointeractive add jq > /dev/null  
-            echo "Suricata Installed"
-          when: ansible_facts['os_family'] == 'Alpine'
-
-        - name: Setup on Centos/RedHat/Fedora
-          become: yes
-          shell: |
-            echo "Downloading Suricata..."
-            if command -v yum &> /dev/null; then
-              yum install --y epel-release yum-plugin-copr > /dev/null
-              yum copr enable --y @oisf/suricata-7.0 > /dev/null
-              yum install --y suricata > /dev/null
-              yum install --y jq > /dev/null
-            else
-              dnf -y install epel-release dnf-plugins-core > /dev/null
-              dnf -y copr enable @oisf/suricata-7.0 > /dev/null
-              dnf -y install suricata > /dev/null
-              dnf -y install jq > /dev/null
-            fi
-            echo "Suricata Installed"
-          when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+    - name: Setup on Centos/RedHat/Fedora
+      become: yes
+      shell: |
+        echo "Downloading Suricata..."
+        if command -v yum &> /dev/null; then
+          yum install --y epel-release yum-plugin-copr > /dev/null
+          yum copr enable --y @oisf/suricata-7.0 > /dev/null
+          yum install --y suricata > /dev/null
+          yum install --y jq > /dev/null
+        else
+          dnf -y install epel-release dnf-plugins-core > /dev/null
+          dnf -y copr enable @oisf/suricata-7.0 > /dev/null
+          dnf -y install suricata > /dev/null
+          dnf -y install jq > /dev/null
+        fi
+        echo "Suricata Installed"
+      when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
         
-        - name: Setup on Suse
-          become: yes
-          shell: |
-            echo "Downloading Suricata..."
-            zypper -y addrepo https://download.opensuse.org/repositories/server:monitoring/openSUSE_Leap_15.3/server:monitoring.repo > /dev/null
-            zypper -y refresh > /dev/null
-            zypper -y install suricata > /dev/null
-            zypper -y install jq > /dev/null
-            echo "Suricata Installed"
-          when: ansible_facts['os_family'] == 'Suse'
+    - name: Setup on Suse
+      become: yes
+      shell: |
+        echo "Downloading Suricata..."
+        zypper -y addrepo https://download.opensuse.org/repositories/server:monitoring/openSUSE_Leap_15.3/server:monitoring.repo > /dev/null
+        zypper -y refresh > /dev/null
+        zypper -y install suricata > /dev/null
+        zypper -y install jq > /dev/null
+        echo "Suricata Installed"
+      when: ansible_facts['os_family'] == 'Suse'
         
-        - name: Setup on ArchLinux
-          become: yes
-          shell: |
-            echo "Downloading Suricata..."
-            pacman -Sy suricata > /dev/null
-            pacman -Sy jq > /dev/null
-            echo "Suricata Installed"
-          when: ansible_facts['os_family'] == 'Archlinux'
+    - name: Setup on ArchLinux
+      become: yes
+      shell: |
+        echo "Downloading Suricata..."
+        pacman -Sy suricata > /dev/null
+        pacman -Sy jq > /dev/null
+        echo "Suricata Installed"
+      when: ansible_facts['os_family'] == 'Archlinux'
 
-        - name: Configuring on All
-          become: yes
-          shell: |
-            systemctl enable suricata > /dev/null
-            systemctl stop suricata
+    - name: Configuring on All
+      become: yes
+      shell: |
+        systemctl enable suricata > /dev/null
+        systemctl stop suricata
+  
+        echo "downloading config template"
+        curl "https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/linux-suricata.yaml" > /etc/suricata/suricata.yaml
 
-            echo "downloading config template"
-            curl "https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/linux-suricata.yaml" > /etc/suricata/suricata.yaml
+        echo "configuring"
+        inter=$(ip -p -j route show default | jq -r ".[0].dev")
+        IP=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f1)
+        CIDR=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f2)
+        NETID=""
+        if [ $CIDR -eq 8 ]; then
+          NETID=$(echo $IP | cut -d'.' -f1)
+          NETID=$NETID".0.0.0/8"
+        elif [ $CIDR -eq 16 ]; then
+          NETID=$(echo $IP | cut -d'.' -f1-2)
+          NETID=$NETID".0.0/16"
+        elif [ $CIDR -eq 24 ]; then
+          NETID=$(echo $IP | cut -d'.' -f1-3)
+          NETID=$NETID".0/24"
+        else
+          NETID=$IP
+        fi
+        sed -i "s@<IP-ADDRESS>@$NETID@g" /etc/suricata/suricata.yaml
+        sed -i "s@<INTERFACE>@$inter@g" /etc/suricata/suricata.yaml
 
-            echo "configuring"
-            inter=$(ip -p -j route show default | jq -r ".[0].dev")
-            IP=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f1)
-            CIDR=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f2)
-            NETID=""
-            if [ $CIDR -eq 8 ]; then
-              NETID=$(echo $IP | cut -d'.' -f1)
-              NETID=$NETID".0.0.0/8"
-            elif [ $CIDR -eq 16 ]; then
-              NETID=$(echo $IP | cut -d'.' -f1-2)
-              NETID=$NETID".0.0/16"
+        echo "updating suricata"
+        suricata-update
+        systemctl start suricata        
 
-            elif [ $CIDR -eq 24 ]; then
-              NETID=$(echo $IP | cut -d'.' -f1-3)
-              NETID=$NETID".0/24"
-            else
-              NETID=$IP
-            fi
-            sed -i "s@<IP-ADDRESS>@$NETID@g" /etc/suricata/suricata.yaml
-            sed -i "s@<INTERFACE>@$inter@g" /etc/suricata/suricata.yaml
-
-            echo "updating suricata"
-            suricata-update
-            systemctl start suricata
+    - name: Cleanup on Debian
+      become: yes
+      shell: apt remove -y jq > /dev/null
+      when: ansible_facts['os_family'] == "Debian"
         
+    - name: Cleanup on RedHat/Centos/Fedora
+      become: yes
+      shell: yum remove -y jq > /dev/null || dnf remove -y jq
+      when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+        
+    - name: Cleanup on Suse
+      become: yes
+      shell: zypper remove -y jq > /dev/null
+      when: ansible_facts['os_family'] == 'Suse'
+        
+    - name: Cleanup on ArchLinux
+      become: yes
+      shell: pacman -Runsy jq > /dev/null
+      when: ansible_facts['os_family'] == 'Archlinux'
 
-        - name: Cleanup on Debian
-          become: yes
-          shell: apt remove -y jq > /dev/null
-          when: ansible_facts['os_family'] == "Debian"
-        
-        - name: Cleanup on RedHat/Centos/Fedora
-          become: yes
-          shell: yum remove -y jq > /dev/null || dnf remove -y jq
-          when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
-        
-        - name: Cleanup on Suse
-          become: yes
-          shell: zypper remove -y jq > /dev/null
-          when: ansible_facts['os_family'] == 'Suse'
-        
-        - name: Cleanup on ArchLinux
-          become: yes
-          shell: pacman -Runsy jq > /dev/null
-          when: ansible_facts['os_family'] == 'Archlinux'
-
-        - name: Cleanup on Alpine
-          become: yes
-          shell: apk --no-interactive del jq > /dev/null
-          when: ansible_facts['os_family'] == 'Alpine'
+    - name: Cleanup on Alpine
+      become: yes
+      shell: apk --no-interactive del jq > /dev/null
+      when: ansible_facts['os_family'] == 'Alpine'
