@@ -1,6 +1,4 @@
 - name: Install Suricata on all systems
-  hosts: windows_hosts:linux_hosts
-  become: yes
   
   tasks:
     - name: Install Suricata on Windows 
@@ -12,11 +10,11 @@
         Start-Process -FilePath 'C:\Temp\Suricata-7.0.2-1.msi' -ArgumentList '/qn' -Wait
       args:
         executable: powershell.exe
-      when: "'Windows' in ansible_system"
+      when: '"Windows" in ansible_system'
 
     - name: Get Suricata Configured and Running on Windows
       become: yes
-      ansible.windows.win_shell:
+      ansible.windows.win_shell: |
         $config_path = 'C:\Program Files\Suricata\suricata.yaml'
         Invoke-WebRequest -Uri 'https://rules.emergingthreats.net/open/suricata/emerging-all.rules' -OutFile 'C:\Program Files\Suricata\rules\emerging-all.rules' -UseBasicParsing
         Invoke-WebRequest -Uri 'https://github.com/maxgriff/AnsibleScripts/windows-suricata.yaml' -OutFile $config_path -UseBasicParsing
@@ -31,4 +29,10 @@
         start-service Suricata
       args:
         executable: powershell.exe
-      when: "'Windows' in ansible_system"        
+      when: '"Windows" in ansible_system'
+
+    - name: Install Suricata on Linux
+      block:
+
+- name: Install Wazuh-Agent on All Systems Other Than Manager
+  hosts: windows_hosts:linux_hosts
