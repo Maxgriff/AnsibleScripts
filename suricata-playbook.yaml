@@ -41,38 +41,26 @@
   - Linux
   tasks:
   - name: Setup on Debian
-    block:
-    - name: Adding Repository (Debian)
-      ansible.builtin.apt_repository:
-        repo: ppa:oisf/suricata-stable
-
-    - name: Installing Suricata (Debian)
-      ansible.builtin.apt:
-        name:
-        - jq
-        - suricata
-    
+    ansible.builtin.apt_repository:
+      repo: ppa:oisf/suricata-stable
+    ansible.builtin.apt:
+      name:
+      - jq
+      - suricata
     when: ansible_facts['os_family'] == 'Debian'
     tags:
     - Setup
     - Debian
 
   - name: Setup on RedHat/Centos/Fedora
-    block:
-    - name: Installing Necessary Packages (RedHat Family)
-      ansible.builtin.dnf:
-        name:
-        - epel-release
-        - yum-plugin-copr
-        - jq
-
-    - name: Adding Repository (RedHat Family)
-      ansible.builtin.shell: dnf -y copr enable @oisf/suricata-7.0 > /dev/null
-
-    - name: Installing Suricata (RedHat Family)
-      ansible.builtin.dnf:
-        name: suricata
-
+    ansible.builtin.dnf:
+      name:
+      - epel-release
+      - yum-plugin-copr
+      - jq
+    ansible.builtin.shell: dnf -y copr enable @oisf/suricata-7.0 > /dev/null
+    ansible.builtin.dnf:
+      name: suricata
     when: ((ansible_facts['distribution'] == 'RedHat' or ansible_facts['distribution'] == 'CentOS') and ansible_facts['distribution_major_version'] | int >= 8 ) 
           or
           (ansible_facts['distribution'] == 'Fedora' and ansible_facts[distribution_major_version] | int >= 22 )
@@ -83,21 +71,14 @@
     - Centos
 
   - name: Setup on Old RedHat/Centos/Fedora
-    block:
-    - name: Installing EPEL and COPR (RedHat Family)
-      ansible.builtin.yum:
-        name:
-          - epel-release
-          - yum-plugin-copr
-          - jq
-
-    - name: Adding Repository (RedHat Family)
-      ansible.builtin.shell: yum copr enable @oisf/suricata-7.0 > /dev/null
-
-    - name: Installing Suricata (RedHat Family)
-      ansible.builtin.yum:
-        name: suricata
-
+    ansible.builtin.yum:
+      name:
+      - epel-release
+      - yum-plugin-copr
+      - jq
+    ansible.builtin.shell: yum copr enable @oisf/suricata-7.0 > /dev/null
+    ansible.builtin.yum:
+      name: suricata
     when: (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] | int <= 7 ) 
           or 
           (ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_major_version'] | int <= 21 )
