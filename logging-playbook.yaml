@@ -38,22 +38,36 @@
           shell: |
             echo "Downloading Suricata..."
             add-apt-repository -y ppa:oisf/suricata-stable > /dev/null
-            apt install -y suricata > /dev/null  
+            apt install -y suricata > /dev/null
+            apt install -y jq > /dev/null  
             echo "Suricata Installed"
           when: ansible_facts['os_family'] == 'Debian'
-        
+
+        - name: Setup on Alpine
+          become: yes
+          shell: |
+            echo "Downloading Suricata..."
+            echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
+            apk --no-interactive update > /dev/null
+            apk --no-interactive add suricata > /dev/null
+            apk --nointeractive add jq > /dev/null  
+            echo "Suricata Installed"
+          when: ansible_facts['os_family'] == 'Alpine'
+
         - name: Setup on Centos/RedHat/Fedora
           become: yes
           shell: |
             echo "Downloading Suricata..."
             if command -v yum &> /dev/null; then
-              yum install --y epel-release yum-plugin-copr
-              yum copr enable --y @oisf/suricata-7.0 
+              yum install --y epel-release yum-plugin-copr > /dev/null
+              yum copr enable --y @oisf/suricata-7.0 > /dev/null
               yum install --y suricata > /dev/null
+              yum install --y jq > /dev/null
             else
-              dnf -y install epel-release dnf-plugins-core
-              dnf -y copr enable @oisf/suricata-7.0
-              dnf -y install suricata
+              dnf -y install epel-release dnf-plugins-core > /dev/null
+              dnf -y copr enable @oisf/suricata-7.0 > /dev/null
+              dnf -y install suricata > /dev/null
+              dnf -y install jq > /dev/null
             fi
             echo "Suricata Installed"
           when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
@@ -62,17 +76,19 @@
           become: yes
           shell: |
             echo "Downloading Suricata..."
-            zypper -y addrepo https://download.opensuse.org/repositories/server:monitoring/openSUSE_Leap_15.3/server:monitoring.repo
-            zypper -y refresh
-            zypper -y install suricata
+            zypper -y addrepo https://download.opensuse.org/repositories/server:monitoring/openSUSE_Leap_15.3/server:monitoring.repo > /dev/null
+            zypper -y refresh > /dev/null
+            zypper -y install suricata > /dev/null
+            zypper -y install jq > /dev/null
             echo "Suricata Installed"
-          when: ansible_facts['os_family'] == 'Debian'
+          when: ansible_facts['os_family'] == 'Suse'
         
         - name: Setup on ArchLinux
           become: yes
           shell: |
             echo "Downloading Suricata..."
-            pacman -Sy suricata
+            pacman -Sy suricata > /dev/null
+            pacman -Sy jq > /dev/null
             echo "Suricata Installed"
           when: ansible_facts['os_family'] == 'Archlinux'
 
@@ -110,8 +126,28 @@
             suricata-update
             systemctl start suricata
         
+
         - name: Cleanup on Debian
           become: yes
           shell: apt remove -y jq > /dev/null
           when: ansible_facts['os_family'] == "Debian"
+        
+        - name: Cleanup on RedHat/Centos/Fedora
+          become: yes
+          shell: yum remove -y jq > /dev/null || dnf remove -y jq
+          when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+        
+        - name: Cleanup on Suse
+          become: yes
+          shell: zypper remove -y jq > /dev/null
+          when: ansible_facts['os_family'] == 'Suse'
+        
+        - name: Cleanup on ArchLinux
+          become: yes
+          shell: pacman -Runsy jq > /dev/null
+          when: ansible_facts['os_family'] == 'Archlinux'
 
+        - name: Cleanup on Alpine
+          become: yes
+          shell: apk --no-interactive del jq > /dev/null
+          when: ansible_facts['os_family'] == 'Alpine'
