@@ -1,10 +1,10 @@
 - name: Install Suricata on Windows
   hosts: windows_hosts
+  become: yes
   tags:
   - Windows
   tasks:
   - name: Install Suricata
-    become: yes
     ansible.windows.win_shell: |
       Invoke-WebRequest -Uri 'https://npcap.com/dist/npcap-1.78.exe' -OutFile 'C:\Temp\npcap-1.78.exe' -UseBasicParsing
       Start-Process -FilePath 'C:\Temp\npcap-1.78.exe' -ArgumentList '/S' -Wait
@@ -16,7 +16,6 @@
     - Setup
 
   - name: Configure and Run Suricata
-    become: yes
     ansible.windows.win_shell: |
       $config_path = 'C:\Program Files\Suricata\suricata.yaml'
       Invoke-WebRequest -Uri 'https://rules.emergingthreats.net/open/suricata/emerging-all.rules' -OutFile 'C:\Program Files\Suricata\rules\emerging-all.rules' -UseBasicParsing
@@ -37,11 +36,11 @@
 
 - name: Install Suricata on Linux
   hosts: linux_hosts,manager
+  become: yes
   tags:
   - Linux
   tasks:
   - name: Setup on Debian
-    become: yes
     shell: |
       echo "Downloading Suricata..."
       add-apt-repository -y ppa:oisf/suricata-stable > /dev/null
@@ -54,27 +53,58 @@
     - Debian
 
   - name: Setup on RedHat/Centos/Fedora
-    become: yes
-    shell: |
-      echo "Downloading Suricata..."
-      if command -v yum &> /dev/null; then
-        yum install --y epel-release yum-plugin-copr > /dev/null
-        yum copr enable --y @oisf/suricata-7.0 > /dev/null
-        yum install --y suricata > /dev/null
-        yum install --y jq > /dev/null
-      else
-        dnf -y install epel-release dnf-plugins-core > /dev/null
-        dnf -y copr enable @oisf/suricata-7.0 > /dev/null
-        dnf -y install suricata > /dev/null
-        dnf -y install jq > /dev/null
-      fi
-      echo "Suricata Installed"
-    when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+    block:
+    - name: Installing Necessary Packages
+      dnf:
+        name:
+        - epel-release
+        - yum-plugin-copr
+        - jq
+        state: present
+
+    - name: Adding Repository
+      command: dnf -y copr enable @oisf/suricata-7.0 > /dev/null
+
+    - name: Installing Suricata
+      dnf:
+        name: suricata
+        state: present
+
+    when: ((ansible_facts['distribution'] == 'RedHat' or ansible_facts['distribution'] == 'CentOS') and ansible_facts['distribution_major_version'] | int >= 8 ) 
+          or
+          (ansible_facts['distribution'] == 'Fedora' and ansible_facts[distribution_major_version] | int >= 22 )
     tags:
     - Setup
     - RedHat
     - Fedora
     - Centos
+
+  - name: Setup on Old RedHat/Centos/Fedora
+    block:
+    - name: Installing EPEL and COPR
+      yum:
+        name:
+          - epel-release
+          - yum-plugin-copr
+          - jq
+        state: present
+
+    - name: Adding Repository
+      command: yum copr enable @oisf/suricata-7.0 > /dev/null
+
+    - name: Installing Suricata
+      yum:
+        name: suricata
+        state: present
+
+    when: (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] | int <= 7 ) 
+          or 
+          (ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_major_version'] | int <= 21 )
+    tags:
+      - Setup
+      - RedHat
+      - Fedora
+      - Centos
      
   - name: Setup on Suse
     become: yes
