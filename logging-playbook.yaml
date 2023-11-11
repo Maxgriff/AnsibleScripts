@@ -33,21 +33,58 @@
 
     - name: Install Suricata on Linux
       block:
-        - name: Install and Start Suricata on Ubuntu/Debian
+        - name: Setup on Ubuntu/Debian
           become: yes
           shell: |
             echo "Downloading Suricata..."
             add-apt-repository -y ppa:oisf/suricata-stable > /dev/null
-            apt install -y suricata > /dev/null
-            
+            apt install -y suricata > /dev/null  
             echo "Suricata Installed"
+          when: ansible_facts['os_family'] == 'Debian'
+        
+        - name: Setup on Centos/RedHat/Fedora
+          become: yes
+          shell: |
+            echo "Downloading Suricata..."
+            if command -v yum &> /dev/null; then
+              yum install --y epel-release yum-plugin-copr
+              yum copr enable --y @oisf/suricata-7.0 
+              yum install --y suricata > /dev/null
+            else
+              dnf -y install epel-release dnf-plugins-core
+              dnf -y copr enable @oisf/suricata-7.0
+              dnf -y install suricata
+            fi
+            echo "Suricata Installed"
+          when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+        
+        - name: Setup on Suse
+          become: yes
+          shell: |
+            echo "Downloading Suricata..."
+            zypper -y addrepo https://download.opensuse.org/repositories/server:monitoring/openSUSE_Leap_15.3/server:monitoring.repo
+            zypper -y refresh
+            zypper -y install suricata
+            echo "Suricata Installed"
+          when: ansible_facts['os_family'] == 'Debian'
+        
+        - name: Setup on ArchLinux
+          become: yes
+          shell: |
+            echo "Downloading Suricata..."
+            pacman -Sy suricata
+            echo "Suricata Installed"
+          when: ansible_facts['os_family'] == 'Archlinux'
+
+        - name: Configuring on All
+          become: yes
+          shell: |
             systemctl enable suricata > /dev/null
             systemctl stop suricata
-            
+
             echo "downloading config template"
             curl "https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/linux-suricata.yaml" > /etc/suricata/suricata.yaml
-            apt install -y jq > /dev/null
-            
+
             echo "configuring"
             inter=$(ip -p -j route show default | jq -r ".[0].dev")
             IP=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f1)
@@ -56,26 +93,27 @@
             if [ $CIDR -eq 8 ]; then
               NETID=$(echo $IP | cut -d'.' -f1)
               NETID=$NETID".0.0.0/8"
-            fi
-            if [ $CIDR -eq 16 ]; then
+            elif [ $CIDR -eq 16 ]; then
               NETID=$(echo $IP | cut -d'.' -f1-2)
               NETID=$NETID".0.0/16"
-            fi
-            if [ $CIDR -eq 24 ]; then
+
+            elif [ $CIDR -eq 24 ]; then
               NETID=$(echo $IP | cut -d'.' -f1-3)
               NETID=$NETID".0/24"
-            fi
-            if [ $NETID = "" ]; then
+            else
               NETID=$IP
             fi
             sed -i "s@<IP-ADDRESS>@$NETID@g" /etc/suricata/suricata.yaml
             sed -i "s@<INTERFACE>@$inter@g" /etc/suricata/suricata.yaml
-            
+
             echo "updating suricata"
             suricata-update
             systemctl start suricata
-            apt remove -y jq > /dev/null
-          when: ansible_os_family == 'Debian'
+        
+        - name: Cleanup on Debian
+          become: yes
+          shell: apt remove -y jq > /dev/null
+          when: ansible_facts['os_family'] == "Debian"
 
             
 
