@@ -24,7 +24,7 @@
         $config = Get-Content -Path $config_path
         $new_config = $config -replace '<IP-ADDRESS>', $ip_addr
         $new_config | Set-Content -Path $config_path
-        cd 'C;\Program Files\Suricata\'
+        cd 'C:\Program Files\Suricata\'
         .\Suricata.exe -c suricata.yaml -i $ip_addr --service-installi\
         start-service Suricata
       args:
