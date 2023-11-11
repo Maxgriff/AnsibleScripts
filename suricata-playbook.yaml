@@ -41,12 +41,17 @@
   - Linux
   tasks:
   - name: Setup on Debian
-    shell: |
-      echo "Downloading Suricata..."
-      add-apt-repository -y ppa:oisf/suricata-stable > /dev/null
-      apt install -y suricata > /dev/null
-      apt install -y jq > /dev/null  
-      echo "Suricata Installed"
+    block:
+    - name: Adding Repository (Debian)
+      ansible.builtin.apt_repository:
+        repo: ppa:oisf/suricata-stable
+
+    - name: Installing Suricata (Debian)
+      ansible.builtin.apt:
+        name:
+        - jq
+        - suricata
+    
     when: ansible_facts['os_family'] == 'Debian'
     tags:
     - Setup
@@ -54,21 +59,19 @@
 
   - name: Setup on RedHat/Centos/Fedora
     block:
-    - name: Installing Necessary Packages
-      dnf:
+    - name: Installing Necessary Packages (RedHat Family)
+      ansible.builtin.dnf:
         name:
         - epel-release
         - yum-plugin-copr
         - jq
-        state: present
 
-    - name: Adding Repository
-      command: dnf -y copr enable @oisf/suricata-7.0 > /dev/null
+    - name: Adding Repository (RedHat Family)
+      ansible.builtin.shell: dnf -y copr enable @oisf/suricata-7.0 > /dev/null
 
-    - name: Installing Suricata
-      dnf:
+    - name: Installing Suricata (RedHat Family)
+      ansible.builtin.dnf:
         name: suricata
-        state: present
 
     when: ((ansible_facts['distribution'] == 'RedHat' or ansible_facts['distribution'] == 'CentOS') and ansible_facts['distribution_major_version'] | int >= 8 ) 
           or
@@ -81,21 +84,19 @@
 
   - name: Setup on Old RedHat/Centos/Fedora
     block:
-    - name: Installing EPEL and COPR
-      yum:
+    - name: Installing EPEL and COPR (RedHat Family)
+      ansible.builtin.yum:
         name:
           - epel-release
           - yum-plugin-copr
           - jq
-        state: present
 
-    - name: Adding Repository
-      command: yum copr enable @oisf/suricata-7.0 > /dev/null
+    - name: Adding Repository (RedHat Family)
+      ansible.builtin.shell: yum copr enable @oisf/suricata-7.0 > /dev/null
 
-    - name: Installing Suricata
-      yum:
+    - name: Installing Suricata (RedHat Family)
+      ansible.builtin.yum:
         name: suricata
-        state: present
 
     when: (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] | int <= 7 ) 
           or 
