@@ -19,6 +19,19 @@ echo -e "[linux_hosts]" > "$linux_file"
 echo -e "\n[windows_hosts]" > "$win_file"
 echo -e "\n[manager]" > "$man_file"
 
+# Check for group_vars directory and all.yaml file, adding them if they don't exist
+if [ ! -d /etc/ansible/group_vars ]; then
+   sudo mkdir /etc/ansible/group_vars > /dev/null
+fi
+
+if [ ! -f /etc/ansible/group_vars/all.yaml ]; then
+   sudo touch /etc/ansible/group_vars/all.yaml 
+fi
+
+# Get NetworkID and store it as a fact for later usage
+read -p "Enter the network ID in CIDR notation (e.g. 192.168.1.0/24): " cidr
+echo -e "net_id: $cidr" | sudo tee -a /etc/ansible/group_vars/all.yaml > /dev/null
+
 # Add each host to the inventory file with user-provided details
 for host in "$@"; do
     read -p "Is '$host' a Linux or Windows host? (l/w): " os_type
@@ -47,7 +60,7 @@ for host in "$@"; do
 	       read -p "Is this the Wazuh Manager? (y/n): " ans
 	       if [ $ans -eq "y"]; then
 		  got_man=1
-                  echo "$host ansible_host=$ip_addr ansible_user=$ssh_username" >> "$man_file"
+                  echo "$host ansible_host=$ip_addr ansible_user=$ssh_username ansible_password=$ssh_password ansible_connection=winrm ansible_winrm_server_cert_validation=ignore" >> "$man_file"
 	       else
             	  echo "$host ansible_host=$ip_addr ansible_user=$ssh_username ansible_password=$ssh_password ansible_connection=winrm ansible_winrm_server_cert_validation=ignore" >> "$win_file"
 	       fi
@@ -60,9 +73,28 @@ for host in "$@"; do
     esac
 done
 
-
 cat "$linux_file" | sudo tee -a "$inventory_file" > /dev/null
 cat "$win_file" | sudo tee -a "$inventory_file" > /dev/null
 rm "$linux_file" "$win_file"
-
 echo "Ansible inventory file '$inventory_file' updated successfully."
+
+echo "Installing Ansible Packages"
+ansible-galaxy collection install community.general
+
+echo "Adding Templates"
+if [! -d /etc/ansible/templates ]; then
+   sudo mkdir /etc/ansible/templates
+fi
+
+if [ -f ./linux-suricata.yaml ]; then
+   sudo cp ./linux-suricata.yaml /etc/ansible/templates
+else
+   sudo curl -o /etc/ansible/templates/linux-suricata.yaml https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/linux-suricata.yaml
+fi
+
+if [ -f ./windows-suricata.yaml ]; then
+   sudo cp ./windows-suricata.yaml /etc/ansible/templates
+else
+   sudo curl -o /etc/ansible/templates/windows-suricata.yaml https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/windows-suricata.yaml
+fi
+

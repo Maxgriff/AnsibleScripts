@@ -90,6 +90,7 @@
      
   - name: Setup on Suse
     become: yes
+    
     shell: |
       echo "Downloading Suricata..."
       zypper -y addrepo https://download.opensuse.org/repositories/server:monitoring/openSUSE_Leap_15.3/server:monitoring.repo > /dev/null
