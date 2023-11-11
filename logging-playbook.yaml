@@ -115,7 +115,3 @@
           shell: apt remove -y jq > /dev/null
           when: ansible_facts['os_family'] == "Debian"
 
-            
-
-- name: Install Wazuh-Agent on All Systems Other Than Manager
-  hosts: windows_hosts:linux_hosts
