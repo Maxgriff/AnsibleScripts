@@ -33,6 +33,41 @@
 
     - name: Install Suricata on Linux
       block:
+        - name: Install and Start Suricata on Ubuntu/Debian
+          become: yes
+          shell: |
+            add-apt-repository -y ppa:oisf/suricata-stable
+            apt install -y suricata
+            systemctl enable suricata
+            systemctl stop suricata
+            curl "https://github.com/maxgriff/AnsibleScipts/linux-suricata.yaml" > /etc/suricata/suricata.yaml
+            apt install -y jq
+            inter=$(ip -p -j route show default | jq -r ".[0].dev")
+            IP=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f1)
+            CIDR=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f2)
+            NETID=""
+            if [ $CIDR -eq 8 ]; then
+              NETID=$(echo $IP | cut -d'.' -f1)
+              NETID=$NETID".0.0.0/8"
+            fi
+            if [ $CIDR -eq 16 ]; then
+              NETID=$(echo $IP | cut -d'.' -f1-2)
+              NETID=$NETID".0.0/16"
+            fi
+            if [ $CIDR -eq 24 ]; then
+              NETID=$(echo $IP | cut -d'.' -f1-3)
+              NETID=$NETID".0/24"
+            fi
+            if [ $NETID = "" ]; then
+              NETID=$IP
+            fi
+            sed -i "s/<IP-ADDRESS>/$NETID/g" /etc/suricata/suricata.yaml
+            sed -i "s/<INTERFACE>/$inter/g" /etc/suricata/suricata.yaml
+            suricata-update
+            systemctl start suricata
+          when: ansible_os_family == 'Debian'
+
+            
 
 - name: Install Wazuh-Agent on All Systems Other Than Manager
   hosts: windows_hosts:linux_hosts
