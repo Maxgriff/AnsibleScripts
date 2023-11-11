@@ -1,5 +1,7 @@
 - name: Install Suricata on Windows
   hosts: windows_hosts
+  tags:
+  - Windows
   tasks:
   - name: Install Suricata
     become: yes
@@ -10,6 +12,8 @@
       Start-Process -FilePath 'C:\Temp\Suricata-7.0.2-1.msi' -ArgumentList '/qn' -Wait
     args:
       executable: powershell.exe
+    tags:
+    - Setup
 
   - name: Configure and Run Suricata
     become: yes
@@ -28,11 +32,15 @@
       .\Suricata.exe -c suricata.yaml -i $ip_addr --service-install
     args:
       executable: powershell.exe
+    tags:
+    - Configuration
 
 - name: Install Suricata on Linux
   hosts: linux_hosts,manager
+  tags:
+  - Linux
   tasks:
-  - name: Setup on Ubuntu/Debian
+  - name: Setup on Debian
     become: yes
     shell: |
       echo "Downloading Suricata..."
@@ -41,19 +49,11 @@
       apt install -y jq > /dev/null  
       echo "Suricata Installed"
     when: ansible_facts['os_family'] == 'Debian'
+    tags:
+    - Setup
+    - Debian
 
-  - name: Setup on Alpine
-    become: yes
-    shell: |
-      echo "Downloading Suricata..."
-      echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
-      apk --no-interactive update > /dev/null
-      apk --no-interactive add suricata > /dev/null
-      apk --nointeractive add jq > /dev/null  
-      echo "Suricata Installed"
-    when: ansible_facts['os_family'] == 'Alpine'
-
-  - name: Setup on Centos/RedHat/Fedora
+  - name: Setup on RedHat/Centos/Fedora
     become: yes
     shell: |
       echo "Downloading Suricata..."
@@ -70,6 +70,11 @@
       fi
       echo "Suricata Installed"
     when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+    tags:
+    - Setup
+    - RedHat
+    - Fedora
+    - Centos
      
   - name: Setup on Suse
     become: yes
@@ -81,6 +86,9 @@
       zypper -y install jq > /dev/null
       echo "Suricata Installed"
     when: ansible_facts['os_family'] == 'Suse'
+    tags:
+    - Setup
+    - Suse
       
   - name: Setup on ArchLinux
     become: yes
@@ -90,6 +98,23 @@
       pacman -Sy jq > /dev/null
       echo "Suricata Installed"
     when: ansible_facts['os_family'] == 'Archlinux'
+    tags:
+    - Setup
+    - ArchLinux
+
+  - name: Setup on Alpine
+    become: yes
+    shell: |
+      echo "Downloading Suricata..."
+      echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
+      apk --no-interactive update > /dev/null
+      apk --no-interactive add suricata > /dev/null
+      apk --nointeractive add jq > /dev/null  
+      echo "Suricata Installed"
+    when: ansible_facts['os_family'] == 'Alpine'
+    tags:
+    - Setup
+    - Alpine
 
   - name: Configuring on All
     become: yes
@@ -123,28 +148,47 @@
       echo "updating suricata"
       suricata-update
       systemctl start suricata        
+    tags:
+    - Configuration
 
   - name: Cleanup on Debian
     become: yes
     shell: apt remove -y jq > /dev/null
     when: ansible_facts['os_family'] == "Debian"
+    tags:
+    - Cleanup
+    - Debian
       
   - name: Cleanup on RedHat/Centos/Fedora
     become: yes
     shell: yum remove -y jq > /dev/null || dnf remove -y jq
     when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+    tags:
+    - Cleanup
+    - Redhat
+    - Fedora
+    - Centos
         
   - name: Cleanup on Suse
     become: yes
     shell: zypper remove -y jq > /dev/null
     when: ansible_facts['os_family'] == 'Suse'
+    tags:
+    - Cleanup
+    - Suse
         
   - name: Cleanup on ArchLinux
     become: yes
     shell: pacman -Runsy jq > /dev/null
     when: ansible_facts['os_family'] == 'Archlinux'
+    tags:
+    - Cleanup
+    - ArchLinux
 
   - name: Cleanup on Alpine
     become: yes
     shell: apk --no-interactive del jq > /dev/null
     when: ansible_facts['os_family'] == 'Alpine'
+    tags:
+    - Cleanup
+    - Alpine
