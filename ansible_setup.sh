@@ -1,16 +1,18 @@
 #!/bin/bash
 
-echo "Installing Ansible"
-sudo apt-add-repository -y ppa:ansible/ansible > /dev/null
-sudo apt -y update > /dev/null
-sudo apt -y install ansible > /dev/null
-echo "Ansible Successfully Installed"
-
 # Check if at least one host is provided
 if [ "$#" -eq 0 ]; then
     echo "Usage: $0 host1 [host2 ... hostN]"
     exit 1
 fi
+
+echo "Installing Ansible"
+sudo apt update
+sudo apt-get install -y software-properties-common
+sudo apt-add-repository -y ppa:ansible/ansible > /dev/null
+sudo apt -y update > /dev/null
+sudo apt -y install ansible > /dev/null
+echo "Ansible Successfully Installed"
 
 # Define the variables
 inventory_file="/etc/ansible/hosts"
