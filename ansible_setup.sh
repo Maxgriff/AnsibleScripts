@@ -1,8 +1,10 @@
 #!/bin/bash
 
+echo "Installing Ansible"
 sudo apt-add-repository -y ppa:ansible/ansible > /dev/null
 sudo apt -y update > /dev/null
 sudo apt -y install ansible > /dev/null
+echo "Ansible Successfully Installed"
 
 # Check if at least one host is provided
 if [ "$#" -eq 0 ]; then
@@ -40,7 +42,7 @@ for host in "$@"; do
 	    # Replace the echo lines with the commented out lines if you are not using private key login
 	    if [ $got_man -eq 0 ]; then
 	       read -p "Is this the Wazuh Manager? (y/n): " ans
-	       if [ $ans -eq "y"]; then
+	       if [ $ans -eq "y" ]; then
 		  got_man=1
                   echo "$host ansible_host=$ip_addr ansible_user=$ssh_username" >> "$man_file"
                   #echo "$host ansible_host=$ip_addr ansible_user=$ssh_username" ansible_password=$ssh_password >> "$man_file"
@@ -60,7 +62,7 @@ for host in "$@"; do
 	    # Check if the current host is the wazuh manager and put info into the appropriate file
 	    if [ $got_man -eq 0 ]; then
 	       read -p "Is this the Wazuh Manager? (y/n): " ans
-	       if [ $ans -eq "y"]; then
+	       if [ $ans -eq "y" ]; then
 		  got_man=1
                   echo "$host ansible_host=$ip_addr ansible_user=$winrm_username ansible_password=$winrm_password ansible_connection=winrm ansible_winrm_server_cert_validation=ignore" >> "$man_file"
 	       else
