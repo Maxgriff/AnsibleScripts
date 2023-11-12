@@ -5,34 +5,41 @@
   - Windows
   tasks:
   - name: Install Suricata
-    ansible.windows.win_shell: |
-      Invoke-WebRequest -Uri 'https://npcap.com/dist/npcap-1.78.exe' -OutFile 'C:\Temp\npcap-1.78.exe' -UseBasicParsing
-      Start-Process -FilePath 'C:\Temp\npcap-1.78.exe' -ArgumentList '/S' -Wait
-      Invoke-WebRequest -Uri 'https://www.openinfosecfoundation.org/download/windows/Suricata-7.0.2-1-64bit.msi' -OutFile 'C:\Temp\Suricata-7.0.2-1.msi' -UseBasicParsing
-      Start-Process -FilePath 'C:\Temp\Suricata-7.0.2-1.msi' -ArgumentList '/qn' -Wait
-    args:
-      executable: powershell.exe
+    block:
+    - name: Installing npcap
+      ansible.windows.win_package:
+        url: https://npcap.com/dist/npcap-1.78.exe
+        arguments:
+        - /S
+    
+    - name: Installing Suricata
+      ansible.windows.win_package:
+        path: https://www.openinfosecfoundation.org/download/windows/Suricata-7.0.2-1-64bit.msi
+    
     tags:
     - Setup
 
-  - name: Configure and Run Suricata
-    ansible.windows.win_shell: |
-      $config_path = 'C:\Program Files\Suricata\suricata.yaml'
-      Invoke-WebRequest -Uri 'https://rules.emergingthreats.net/open/suricata/emerging-all.rules' -OutFile 'C:\Program Files\Suricata\rules\emerging-all.rules' -UseBasicParsing
-      Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/windows-suricata.yaml' -OutFile $config_path -UseBasicParsing
-      $network = Get-NetIPInterface | Where-Object { $_.ConnectionState -eq 'Connected' -and $_.InterfaceAlias -notlike '*Loopback*' -and $_.AddressFamily -eq 'IPv4' } | Sort-Object -Property InterfaceMetric
-      $interface_id = $network[0].InterfaceIndex
-      $ip_addr = (Get-NetIPAddress -InterfaceIndex $interface_id | Where-Object { $_.AddressFamily -eq 'IPv4' }).IPAddress
-      $config = Get-Content -Path $config_path
-      $new_config = $config -replace '<IP-ADDRESS>', $ip_addr
-      $new_config | Set-Content -Path $config_path
-      cd 'C:\Program Files\Suricata'
-      echo 'Starting Suricata on $ip_adddr'
-      .\Suricata.exe -c suricata.yaml -i $ip_addr --service-install
-    args:
-      executable: powershell.exe
+  - name: Configure suricata.yaml
+    template:
+      src: /etc/ansible/templates/windows-suricata.j2
+      dest: 'C:\Program Files\Suricata\suricata.yaml'
     tags:
     - Configuration
+
+  - name: Download Default ET Rules
+    ansible.windows.win_get_url:
+      url: https://rules.emergingthreats.net/open/suricata/emerging-all.rules
+      dest: 'C:\Program Files\Suricata\rules\emerging-all.rules'
+    tags:
+    - Configuration
+
+  - name: Run Suricata
+    ansible.windows.win_command: .\Suricata.exe -c suricata.yaml -i  {{ ansible_default_ipv4.address }} --service-install
+    args:
+      chdir: 'C:\Program Files\Suricata'
+    tags:
+    - Startup
+
 
 - name: Install Suricata on Linux
   hosts: linux_hosts,manager
@@ -40,30 +47,48 @@
   tags:
   - Linux
   tasks:
-  - name: Setup on Debian
-    ansible.builtin.apt_repository:
-      repo: ppa:oisf/suricata-stable
-    ansible.builtin.apt:
-      name:
-      - jq
-      - suricata
-    when: ansible_facts['os_family'] == 'Debian'
+  - name: Install Suricata on Debian
+    block:
+    - name: Adding Repository on Debian 
+      ansible.builtin.apt_repository:
+        repo: ppa:oisf/suricata-stable
+        state: present
+  
+    - name: Installing Suricata on Debian
+      ansible.builtin.apt:
+        name:
+        - jq
+        - suricata
+        state: present
+
+    when: ansible_os_family == 'Debian'
     tags:
     - Setup
     - Debian
 
-  - name: Setup on RedHat/Centos/Fedora
-    ansible.builtin.dnf:
-      name:
-      - epel-release
-      - yum-plugin-copr
-      - jq
-    ansible.builtin.shell: dnf -y copr enable @oisf/suricata-7.0 > /dev/null
-    ansible.builtin.dnf:
-      name: suricata
-    when: ((ansible_facts['distribution'] == 'RedHat' or ansible_facts['distribution'] == 'CentOS') and ansible_facts['distribution_major_version'] | int >= 8 ) 
+  - name: Install Suricata on RedHat/Centos/Fedora
+    block:
+    - name: Installing Dependencies on RedHat/Centos/Fedora
+      ansible.builtin.dnf:
+        name:
+        - epel-release
+        - yum-plugin-copr
+        - jq
+        state: present
+
+    - name: Adding Repository on RedHat/Centos/Fedora
+      community.general.copr: 
+        name: '@oisf/suricata-7.0'
+        state: enabled
+    
+    - name: Installing Suricata on RedHat/Centos/Fedora
+      ansible.builtin.dnf:
+        name: suricata
+        state: present
+    
+    when: (( ansible_distribution == 'RedHat' or distribution == 'CentOS') and distribution_major_version | int >= 8 ) 
           or
-          (ansible_facts['distribution'] == 'Fedora' and ansible_facts[distribution_major_version] | int >= 22 )
+          ( ansible_distribution == 'Fedora' and ansible_distribution_major_version | int >= 22 )
     tags:
     - Setup
     - RedHat
@@ -71,34 +96,77 @@
     - Centos
 
   - name: Setup on Old RedHat/Centos/Fedora
-    ansible.builtin.yum:
-      name:
-      - epel-release
-      - yum-plugin-copr
-      - jq
-    ansible.builtin.shell: yum copr enable @oisf/suricata-7.0 > /dev/null
-    ansible.builtin.yum:
-      name: suricata
-    when: (ansible_facts['os_family'] == 'RedHat' and ansible_facts['distribution_major_version'] | int <= 7 ) 
+    block:
+    - name: Installing Dependencies on RedHat/Centos/Fedora
+      ansible.builtin.yum:
+        name:
+        - epel-release
+        - yum-plugin-copr
+        - jq
+        state: present
+    
+    - name: Adding Repository on RedHat/Centos/Fedora
+      community.general.copr: 
+        name: '@oisf/suricata-7.0'
+        state: enabled
+
+    - name: Installing Suricata on RedHat/Centos/Fedora
+      ansible.builtin.yum:
+        name: suricata
+        state: present
+
+    when: ( ansible_os_family == 'RedHat' and ansible_distribution_major_version | int <= 7 ) 
           or 
-          (ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_major_version'] | int <= 21 )
+          ( ansible_distribution == 'Fedora' and ansible_distribution_major_version | int <= 21 )
     tags:
       - Setup
       - RedHat
       - Fedora
       - Centos
      
-  - name: Setup on Suse
-    become: yes
+  - name: Install Suricata on Suse
+    block:
+    - name: Installing Dependencies on Suse
+      community.general.zypper:
+        name:
+        - wget 
+        - tar 
+        - gcc
+        - pkg-config 
+        - pcre-devel 
+        - libyaml-devel
+        - libpcap-devel 
+        - zlib-devel 
+        - file-devel
+        - make
+        - libnetfilter_queue-devel
+        - libjansson-devel 
+        - mozilla-nss-devel
+        - libcap-ng-devel 
+        - lua5*-devel
+        state: present
     
-    shell: |
-      echo "Downloading Suricata..."
-      zypper -y addrepo https://download.opensuse.org/repositories/server:monitoring/openSUSE_Leap_15.3/server:monitoring.repo > /dev/null
-      zypper -y refresh > /dev/null
-      zypper -y install suricata > /dev/null
-      zypper -y install jq > /dev/null
-      echo "Suricata Installed"
-    when: ansible_facts['os_family'] == 'Suse'
+    - name: Download and unzip source files
+      ansible.builtin.unarchive:
+        remote_src: true
+        src: https://www.openinfosecfoundation.org/download/suricata-4.0.5.tar.gz
+        dest: /home/{{ ssh_user }}/suricata-4.0.5
+
+    - name: Running ./configure
+      become: yes
+      vars:
+        inputs: "--prefix=/usr --sysconfdir=/etc --localstatedir=/var --enable-nfqueue --enable-lua"
+      ansible.builtin.command: 
+        cmd: ./configure {{ inputs }}
+        chdir: /home/{{ ansible_ssh_user }}/suricata-4.0.5
+      environment:
+        CPPFLAGS: "-I/usr/include/libnetfilter_queue/ -I/usr/include/libnfnetlink/"
+
+    - name: Running make install-full
+      become: yes
+      ansible.builtin.shell: make && make install-full && ld-config
+
+    when: ansible_os_family == 'Suse'
     tags:
     - Setup
     - Suse
@@ -110,7 +178,7 @@
       pacman -Sy suricata > /dev/null
       pacman -Sy jq > /dev/null
       echo "Suricata Installed"
-    when: ansible_facts['os_family'] == 'Archlinux'
+    when: ansible_os_family == 'Archlinux'
     tags:
     - Setup
     - ArchLinux
@@ -124,58 +192,42 @@
       apk --no-interactive add suricata > /dev/null
       apk --nointeractive add jq > /dev/null  
       echo "Suricata Installed"
-    when: ansible_facts['os_family'] == 'Alpine'
+    when: ansible_os_family == 'Alpine'
     tags:
     - Setup
     - Alpine
 
   - name: Configuring on All
     become: yes
-    shell: |
-      systemctl enable suricata > /dev/null
-      systemctl stop suricata
-  
-      echo "downloading config template"
-      curl "https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/main/linux-suricata.yaml" > /etc/suricata/suricata.yaml
+    block:
+    - name: Configuring suricata.yaml
+      template:
+        src: /etc/ansible/templates/linux-suricata.j2
+        dest: /etc/suricata/suricata.yaml
+    
+    - name: Restarting Suricata
+      ansible.builtin.service:
+        name: suricata
+        state: restarted
 
-      echo "configuring"
-      inter=$(ip -p -j route show default | jq -r ".[0].dev")
-      IP=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f1)
-      CIDR=$(ip -4 addr show $inter | awk '/inet /{print $2}' | cut -d't' -f2 | cut -d' ' -f2 | cut -d'/' -f2)
-      NETID=""
-      if [ $CIDR -eq 8 ]; then
-        NETID=$(echo $IP | cut -d'.' -f1)
-        NETID=$NETID".0.0.0/8"
-      elif [ $CIDR -eq 16 ]; then
-        NETID=$(echo $IP | cut -d'.' -f1-2)
-        NETID=$NETID".0.0/16"
-      elif [ $CIDR -eq 24 ]; then
-        NETID=$(echo $IP | cut -d'.' -f1-3)
-        NETID=$NETID".0/24"
-      else
-        NETID=$IP
-      fi
-      sed -i "s@<IP-ADDRESS>@$NETID@g" /etc/suricata/suricata.yaml
-      sed -i "s@<INTERFACE>@$inter@g" /etc/suricata/suricata.yaml
+    - name: Running suricata-update
+      ansible.builtin.command: suricata-update
 
-      echo "updating suricata"
-      suricata-update
-      systemctl start suricata        
     tags:
     - Configuration
 
   - name: Cleanup on Debian
     become: yes
     shell: apt remove -y jq > /dev/null
-    when: ansible_facts['os_family'] == "Debian"
+    when: ansible_os_family == "Debian"
     tags:
     - Cleanup
     - Debian
-      
+  
   - name: Cleanup on RedHat/Centos/Fedora
     become: yes
     shell: yum remove -y jq > /dev/null || dnf remove -y jq
-    when: ansible_facts['os_family'] == 'RedHat' or ansible_facts['distribution'] == 'Fedora'
+    when: ansible_os_family == 'RedHat' or ansible_distribution  == 'Fedora'
     tags:
     - Cleanup
     - Redhat
@@ -185,7 +237,7 @@
   - name: Cleanup on Suse
     become: yes
     shell: zypper remove -y jq > /dev/null
-    when: ansible_facts['os_family'] == 'Suse'
+    when: ansible_os_family == 'Suse'
     tags:
     - Cleanup
     - Suse
@@ -193,7 +245,7 @@
   - name: Cleanup on ArchLinux
     become: yes
     shell: pacman -Runsy jq > /dev/null
-    when: ansible_facts['os_family'] == 'Archlinux'
+    when: ansible_os_family == 'Archlinux'
     tags:
     - Cleanup
     - ArchLinux
@@ -201,7 +253,7 @@
   - name: Cleanup on Alpine
     become: yes
     shell: apk --no-interactive del jq > /dev/null
-    when: ansible_facts['os_family'] == 'Alpine'
+    when: ansible_os_family == 'Alpine'
     tags:
     - Cleanup
     - Alpine

@@ -79,7 +79,13 @@ rm "$linux_file" "$win_file"
 echo "Ansible inventory file '$inventory_file' updated successfully."
 
 echo "Installing Ansible Packages"
-ansible-galaxy collection install community.general
+if [[ $(ansible-galaxy collection list | grep community\\\.general | wc -l) -eq "0" ]]
+   ansible-galaxy collection install community.general
+fi
+
+if [[ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0" ]]
+   ansible-galaxy collection install ansible.windows
+fi
 
 echo "Adding Templates"
 if [! -d /etc/ansible/templates ]; then
