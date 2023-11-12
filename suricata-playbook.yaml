@@ -56,8 +56,7 @@
   
     - name: Installing Suricata on Debian
       ansible.builtin.apt:
-        name:
-        - suricata
+        name: suricata
         state: present
 
     when: ansible_os_family == 'Debian'
@@ -75,16 +74,16 @@
         state: present
 
     - name: Adding Repository on RedHat/Centos/Fedora
-      community.general.copr: 
+      community.general.copr:
         name: '@oisf/suricata-7.0'
-        state: enabled
+        state: enabled  
     
     - name: Installing Suricata on RedHat/Centos/Fedora
       ansible.builtin.dnf:
         name: suricata
         state: present
     
-    when: (( ansible_distribution == 'RedHat' or distribution == 'CentOS') and distribution_major_version | int >= 8 ) 
+    when: (( ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS') and ansible_distribution_major_version | int >= 8 ) 
           or
           ( ansible_distribution == 'Fedora' and ansible_distribution_major_version | int >= 22 )
     tags:
@@ -101,16 +100,20 @@
         - epel-release
         - yum-plugin-copr
         state: present
+        update_cache: true
     
     - name: Adding Repository on RedHat/Centos/Fedora
-      community.general.copr: 
-        name: '@oisf/suricata-7.0'
-        state: enabled
+      become: yes
+      vars:
+        package: '@oisf/suricata-7.0'
+      ansible.builtin.command:
+        cmd: yum -y copr enable {{ package }} 
 
     - name: Installing Suricata on RedHat/Centos/Fedora
       ansible.builtin.yum:
         name: suricata
         state: present
+        update_cache: true
 
     when: ( ansible_os_family == 'RedHat' and ansible_distribution_major_version | int <= 7 ) 
           or 
@@ -123,6 +126,13 @@
      
   - name: Install Suricata on Suse
     block:
+
+    - name: Refresh and update all packages
+      community.general.zypper:
+        name: '*'
+        update_cache: true
+        state: latest
+
     - name: Installing Dependencies on Suse
       community.general.zypper:
         name:
@@ -142,26 +152,59 @@
         - libcap-ng-devel 
         - lua5*-devel
         state: present
+        update_cache: true
+
+    - name: Installing Rust
+      become: no
+      ansible.builtin.shell:
+        cmd: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+
+    - name: Running Rustup update
+      become: no
+      ansible.builtin.command:
+        cmd: rustup update
     
+    - name: Copying Rust Files
+      ansible.builtin.copy:
+        src: /home/{{ ansible_ssh_user }}/.cargo/bin/
+        remote_src: true
+        dest: /bin/
+
+    - name: Copying Cargo Files
+      ansible.builtin.copy:
+        src: /home/{{ ansible_ssh_user }}/.cargo
+        remote_src: true
+        dest: /root/
+
+    - name: Initializing Rust versions
+      ansible.builtin.command:
+        cmd: /bin/rustup default stable
+
     - name: Download and unzip source files
       ansible.builtin.unarchive:
         remote_src: true
-        src: https://www.openinfosecfoundation.org/download/suricata-4.0.5.tar.gz
-        dest: /home/{{ ansible_ssh_user }}/suricata-4.0.5
+        src: https://www.openinfosecfoundation.org/download/suricata-6.0.15.tar.gz
+        dest: /home/{{ ansible_ssh_user }}
 
     - name: Running ./configure
-      become: yes
+      become: no
       vars:
         inputs: "--prefix=/usr --sysconfdir=/etc --localstatedir=/var --enable-nfqueue --enable-lua"
       ansible.builtin.command: 
-        cmd: ./configure {{ inputs }}
-        chdir: /home/{{ ansible_ssh_user }}/suricata-4.0.5
+        cmd: sudo ./configure {{ inputs }}
+        chdir: /home/{{ ansible_ssh_user }}/suricata-6.0.15
       environment:
         CPPFLAGS: "-I/usr/include/libnetfilter_queue/ -I/usr/include/libnfnetlink/"
 
     - name: Running make install-full
-      become: yes
-      ansible.builtin.shell: make && make install-full && ld-config
+      ansible.builtin.shell: 
+        cmd: make && make install-full && ldconfig
+        chdir: /home/{{ ansible_ssh_user }}/suricata-6.0.15
+
+    - name: Install Suricata as a Service
+      ansible.builtin.copy:
+        src: /etc/ansible/templates/suricata.service
+        dest: /etc/systemd/system/
 
     when: ansible_os_family == 'Suse'
     tags:
@@ -170,7 +213,7 @@
       
   - name: Setup on ArchLinux
     become: yes
-    communtiy.general.pacman:
+    community.general.pacman:
       name: suricata
       update_cache: true
     when: ansible_os_family == 'Archlinux'
@@ -196,13 +239,14 @@
         src: /etc/ansible/templates/linux-suricata.j2
         dest: /etc/suricata/suricata.yaml
     
+    - name: Running suricata-update
+      ansible.builtin.shell: suricata-update
+    
     - name: Restarting Suricata
       ansible.builtin.service:
         name: suricata
         state: restarted
-
-    - name: Running suricata-update
-      ansible.builtin.command: suricata-update
-
+        enabled: true
+    
     tags:
     - Configuration

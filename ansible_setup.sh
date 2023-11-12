@@ -114,6 +114,12 @@ else
    sudo curl -o /etc/ansible/templates/linux-suricata.j2 https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/develop/linux-suricata.j2
 fi
 
+if [ -f ./suricata.service ]; then
+   sudo cp ./suricata.service /etc/ansible/templates
+else
+   sudo curl -o /etc/ansible/templates/suricata.service  https://raw.githubusercontent.com/Maxgriff/AnsibleScripts/develop/suricata.service
+fi
+
 if [ -f ./windows-suricata.j2 ]; then
    sudo cp ./windows-suricata.j2 /etc/ansible/templates
 else
