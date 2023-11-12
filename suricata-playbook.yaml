@@ -57,7 +57,6 @@
     - name: Installing Suricata on Debian
       ansible.builtin.apt:
         name:
-        - jq
         - suricata
         state: present
 
@@ -73,7 +72,6 @@
         name:
         - epel-release
         - yum-plugin-copr
-        - jq
         state: present
 
     - name: Adding Repository on RedHat/Centos/Fedora
@@ -102,7 +100,6 @@
         name:
         - epel-release
         - yum-plugin-copr
-        - jq
         state: present
     
     - name: Adding Repository on RedHat/Centos/Fedora
@@ -150,7 +147,7 @@
       ansible.builtin.unarchive:
         remote_src: true
         src: https://www.openinfosecfoundation.org/download/suricata-4.0.5.tar.gz
-        dest: /home/{{ ssh_user }}/suricata-4.0.5
+        dest: /home/{{ ansible_ssh_user }}/suricata-4.0.5
 
     - name: Running ./configure
       become: yes
@@ -173,11 +170,9 @@
       
   - name: Setup on ArchLinux
     become: yes
-    shell: |
-      echo "Downloading Suricata..."
-      pacman -Sy suricata > /dev/null
-      pacman -Sy jq > /dev/null
-      echo "Suricata Installed"
+    communtiy.general.pacman:
+      name: suricata
+      update_cache: true
     when: ansible_os_family == 'Archlinux'
     tags:
     - Setup
@@ -185,13 +180,9 @@
 
   - name: Setup on Alpine
     become: yes
-    shell: |
-      echo "Downloading Suricata..."
-      echo "http://dl-cdn.alpinelinux.org/alpine/latest-stable/community" >> /etc/apk/repositories
-      apk --no-interactive update > /dev/null
-      apk --no-interactive add suricata > /dev/null
-      apk --nointeractive add jq > /dev/null  
-      echo "Suricata Installed"
+    community.general.apk:
+      name: suricata
+      update_cache: true
     when: ansible_os_family == 'Alpine'
     tags:
     - Setup
@@ -215,45 +206,3 @@
 
     tags:
     - Configuration
-
-  - name: Cleanup on Debian
-    become: yes
-    shell: apt remove -y jq > /dev/null
-    when: ansible_os_family == "Debian"
-    tags:
-    - Cleanup
-    - Debian
-  
-  - name: Cleanup on RedHat/Centos/Fedora
-    become: yes
-    shell: yum remove -y jq > /dev/null || dnf remove -y jq
-    when: ansible_os_family == 'RedHat' or ansible_distribution  == 'Fedora'
-    tags:
-    - Cleanup
-    - Redhat
-    - Fedora
-    - Centos
-        
-  - name: Cleanup on Suse
-    become: yes
-    shell: zypper remove -y jq > /dev/null
-    when: ansible_os_family == 'Suse'
-    tags:
-    - Cleanup
-    - Suse
-        
-  - name: Cleanup on ArchLinux
-    become: yes
-    shell: pacman -Runsy jq > /dev/null
-    when: ansible_os_family == 'Archlinux'
-    tags:
-    - Cleanup
-    - ArchLinux
-
-  - name: Cleanup on Alpine
-    become: yes
-    shell: apk --no-interactive del jq > /dev/null
-    when: ansible_os_family == 'Alpine'
-    tags:
-    - Cleanup
-    - Alpine
