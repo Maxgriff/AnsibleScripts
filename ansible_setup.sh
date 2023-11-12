@@ -1,5 +1,9 @@
 #!/bin/bash
 
+sudo apt-add-repository -y ppa:ansible/ansible > /dev/null
+sudo apt -y update > /dev/null
+sudo apt -y install ansible > /dev/null
+
 # Check if at least one host is provided
 if [ "$#" -eq 0 ]; then
     echo "Usage: $0 host1 [host2 ... hostN]"
@@ -12,7 +16,6 @@ linux_file="linux.ini"
 win_file="windows.ini"
 man_file="manager.ini"
 got_man=0
-ans="n"
 
 # Create or overwrite the inventory file
 echo -e "[linux_hosts]" > "$linux_file"
@@ -84,12 +87,12 @@ echo "Ansible inventory file '$inventory_file' updated successfully."
 echo "Installing Ansible Packages"
 
 # Make sure community.general is installed with ansible
-if [[ $(ansible-galaxy collection list | grep community\\\.general | wc -l) -eq "0" ]]
+if [ $(ansible-galaxy collection list | grep community\\\.general | wc -l) -eq "0" ]; then
    ansible-galaxy collection install community.general
 fi
 
 # Make sure ansible.windows is installed with ansible
-if [[ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0" ]]
+if [ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0" ]; then
    ansible-galaxy collection install ansible.windows
 fi
 
