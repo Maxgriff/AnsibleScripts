@@ -18,6 +18,7 @@ private_key=0
 echo -e "[linux_hosts]" > "$linux_file"
 echo -e "\n[windows_hosts]" > "$win_file"
 echo -e "\n[manager]" > "$man_file"
+echo -e "" >> $inventory_file
 
 # Check if using private key log in
 
@@ -61,11 +62,12 @@ for host in "$@"; do
 
 	    # Check if using private key or password for login
             if [ $private_key -eq "1" ]; then
-	       echo "$host ansible_host=$ip_addr ansible_home=/etc/$ssh_username/ ansible_user=$ssh_username" ansible_ssh_private_key_file="$priv_path" >> "$linux_file"
+	       echo "$host ansible_host=$ip_addr ansible_home=/home/$ssh_username/ ansible_user=$ssh_username" ansible_ssh_private_key_file="$priv_path" >> "$linux_file"
 	       private_key=0
 	    else
-	       echo "$host ansible_host=$ip_addr ansible_home=/etc/$ssh_username/ ansible_user=$ssh_username" ansible_password=$ssh_password >> "$linux_file"
+	       echo "$host ansible_host=$ip_addr ansible_home=/home/$ssh_username/ ansible_user=$ssh_username" ansible_password=$ssh_password >> "$linux_file"
 	    fi
+	    echo
             ;;
         w|windows)
 	    # Get the winrm username and password and the ip address to connect to
@@ -83,7 +85,8 @@ for host in "$@"; do
 	       fi
 	    fi
             echo "$host ansible_host=$ip_addr ansible_home=C:\\Users\\$winrm_username\\ ansible_user=$winrm_username ansible_password=$winrm_password ansible_connection=winrm ansible_winrm_server_cert_validation=ignore" >> "$win_file"
-            ;;
+            echo
+	    ;;
         *)
             echo "Invalid input. Specify 'l' for Linux or 'w' for Windows."
             exit 1
@@ -99,8 +102,9 @@ cat "$man_file" >> "$inventory_file"
 # Remove intermediate files
 rm "$linux_file" "$win_file" "$man_file"
 echo "Ansible inventory file '$inventory_file' updated successfully."
-
-echo "Installing Ansible Packages"
+echo
+echo "Installing Ansible Packages..."
+echo
 
 # Make sure community.general is installed with ansible
 if [ $(ansible-galaxy collection list | grep community\\\.general | wc -l) -eq "0" ]; then
@@ -113,4 +117,4 @@ if [ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0"
 fi
 
 echo "Adding Inventory to ansible.cfg"
-sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(pwd)/inventory/hosts" /etc/ansible/ansible.cfg
+sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(pwd)/inventory/hosts@g" /etc/ansible/ansible.cfg

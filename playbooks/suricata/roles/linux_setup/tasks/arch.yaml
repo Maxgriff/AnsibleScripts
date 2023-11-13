@@ -1,0 +1,7 @@
+# Haven't Tested on Arch yet, so file could grow
+
+- name: Setup on ArchLinux
+  become: yes
+  community.general.pacman:
+    name: suricata
+    update_cache: true
