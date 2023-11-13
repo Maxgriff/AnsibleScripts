@@ -14,6 +14,11 @@ man_file="manager.ini"
 got_man=0
 private_key=0
 
+# Create inventory directory if it doesn't exist
+if [ ! -d inventory ]; then
+   mkdir inventory
+fi
+
 # Create or overwrite the inventory file
 echo -e "[linux_hosts]" > "$linux_file"
 echo -e "\n[windows_hosts]" > "$win_file"
