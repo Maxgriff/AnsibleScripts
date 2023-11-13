@@ -1,3 +1,5 @@
+# Installing Dependcies and Suricata Repository on old RedHat
+
 - name: Installing Dependencies on RedHat/Centos/Fedora
   ansible.builtin.yum:
     name:
@@ -10,9 +12,3 @@
   become: yes
   ansible.builtin.command:
     cmd: yum -y copr enable {{ redhat_package }}
-
-- name: Installing Suricata on RedHat/Centos/Fedora
-  ansible.builtin.yum:
-    name: suricata
-    state: present
-    update_cache: true

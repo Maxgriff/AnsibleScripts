@@ -1,11 +1,6 @@
-# Installation of Suricata on Debian distributions
+# Adding Suricata Repository on Debian distributions
 
 - name: Adding Repository on Debian
   ansible.builtin.apt_repository:
     repo: ppa:oisf/suricata-stable
-    state: present
-
-- name: Installing Suricata on Debian
-  ansible.builtin.apt:
-    name: suricata
     state: present

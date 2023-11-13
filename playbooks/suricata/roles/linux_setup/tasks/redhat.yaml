@@ -1,3 +1,5 @@
+# Installing Dependcies and Suricata Repository on RedHat
+
 - name: Installing Dependencies on RedHat/Centos/Fedora
   ansible.builtin.dnf:
     name:
@@ -9,8 +11,3 @@
   community.general.copr:
     name: "{{ redhat_package }}"
     state: enabled
-
-- name: Installing Suricata on RedHat/Centos/Fedora
-  ansible.builtin.dnf:
-    name: suricata
-    state: present
