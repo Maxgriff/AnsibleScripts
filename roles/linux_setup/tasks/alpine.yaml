@@ -1,0 +1,7 @@
+# Haven't Tested on Alpine yet, so File Could Grow
+
+- name: Setup on Alpine
+  become: yes
+  community.general.apk:
+    name: suricata
+    update_cache: true

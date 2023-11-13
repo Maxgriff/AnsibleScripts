@@ -1,0 +1,51 @@
+# Install Suricata on All Linux Distros
+
+- name: Setup on Debian
+  import_tasks: debian.yaml
+  when: ansible_os_family == 'Debian'
+  tags:
+  - Setup
+  - Debian
+
+- name: Setup on RedHat/Centos/Fedora
+  import_tasks: redhat.yaml
+  when: (( ansible_distribution == 'RedHat' or ansible_distribution == 'CentOS') and ansible_distribution_major_version | int >= 8 )
+        or
+        ( ansible_distribution == 'Fedora' and ansible_distribution_major_version | int >= 22 )
+  tags:
+  - Setup
+  - RedHat
+  - Fedora
+  - Centos
+
+- name: Setup on 
+  import_tasks: old_redhat.yaml
+  when: ( ansible_os_family == 'RedHat' and ansible_distribution_major_version | int <= 7 )
+        or
+        ( ansible_distribution == 'Fedora' and ansible_distribution_major_version | int <= 21 )
+  tags:
+    - Setup
+    - RedHat
+    - Fedora
+    - Centos
+
+- name: Setup on Suse
+  import_tasks: suse.yaml
+  when: ansible_os_family == 'Suse'
+  tags:
+  - Setup
+  - Suse
+
+- name: Setup on ArchLinux
+  import_tasks: arch.yaml
+  when: ansible_os_family == 'Archlinux'
+  tags:
+    - Setup
+    - ArchLinux
+
+- name: Setup on Alpine
+  import_tasks: alpine.yaml 
+  when: ansible_os_family == 'Alpine'
+  tags:
+  - Setup
+  - Alpine

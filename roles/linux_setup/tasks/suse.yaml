@@ -1,0 +1,38 @@
+- name: Refresh and update all packages on Suse
+  community.general.zypper:
+    name: '*'
+    update_cache: true
+    state: latest
+
+- name: Installing Dependencies on Suse
+  community.general.zypper:
+    name: {{ suse_dependencies }}
+    state: present
+    update_cache: true
+
+- name: Install Rust
+  import_role: rust_install
+
+- name: Download and unzip source files
+  ansible.builtin.unarchive:
+    remote_src: true
+    src: {{ suse_suricata_download }} 
+    dest: {{ ansible_home }}
+
+- name: Running ./configure
+  become: no
+  ansible.builtin.command:
+    cmd: sudo ./configure {{ suse_config_inputs }}
+    chdir: {{ suse_suricata_dir }}
+  environment:
+    CPPFLAGS: "-I/usr/include/libnetfilter_queue/ -I/usr/include/libnfnetlink/"
+
+- name: Running make install-full
+  ansible.builtin.shell:
+    cmd: make && make install-full && ldconfig
+    chdir: {{ suse_suricata_dir }}
+
+- name: Install Suricata as a Service
+  ansible.builtin.copy:
+    src: suricata.service
+    dest: /etc/systemd/system/

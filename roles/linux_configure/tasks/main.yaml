@@ -1,0 +1,15 @@
+# Tasks to Configure and Start Suricata on Linux
+
+- name: Configuring suricata.yaml
+  template:
+    src: linux-suricata.j2
+    dest: {{ config_path }}
+    
+- name: Running suricata-update
+  ansible.builtin.shell: suricata-update
+
+- name: Restarting Suricata
+  ansible.builtin.service:
+    name: suricata
+    state: restarted
+    enabled: true
