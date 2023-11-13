@@ -1,0 +1,2 @@
+[test]
+suse ansible_host=10.10.0.23 ansible_user=ec2-user ansible_private_key_path=/home/max/BlueTeam/logging.pem

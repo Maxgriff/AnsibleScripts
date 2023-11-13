@@ -18,7 +18,7 @@
   - Fedora
   - Centos
 
-- name: Setup on 
+- name: Setup on old RedHat/Centos/Fedora 
   import_tasks: old_redhat.yaml
   when: ( ansible_os_family == 'RedHat' and ansible_distribution_major_version | int <= 7 )
         or
@@ -30,7 +30,12 @@
     - Centos
 
 - name: Setup on Suse
-  import_tasks: suse.yaml
+  block:
+  - name: Try Installing with Package Manager
+    import_tasks: suse_package.yaml
+  rescue:
+  - name: Install Using Source Files
+    import_tasks: suse_source.yaml
   when: ansible_os_family == 'Suse'
   tags:
   - Setup
