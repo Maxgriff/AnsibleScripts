@@ -31,8 +31,22 @@
 
 - name: Setup on Suse
   block:
+  - name: Refresh and update all packages on Suse
+    community.general.zypper:
+      name: '*'
+      update_cache: true
+      state: latest
+
+  - name: install Dependencies on Suse
+    community.general.zypper:
+      name: "{{ suse_dependencies }}"
+      state: present
+      update_cache: true
+
   - name: Try Installing with Package Manager
     import_tasks: suse_package.yaml
+  when: ansible_os_family == 'Suse'
+  
   rescue:
   - name: Install Using Source Files
     import_tasks: suse_source.yaml

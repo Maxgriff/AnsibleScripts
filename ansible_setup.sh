@@ -7,22 +7,28 @@ if [ "$#" -eq 0 ]; then
 fi
 
 # Define the variables
-inventory_file="inventory/hosts"
-linux_file="linux.ini"
-win_file="windows.ini"
-man_file="manager.ini"
+inventory_file="$(pwd)/inventory/hosts.yaml"
+linux_file="linux.yaml"
+win_file="windows.yaml"
+man_file="manager.yaml"
 got_man=0
 private_key=0
 
-# Create inventory directory if it doesn't exist
-if [ ! -d inventory ]; then
-   mkdir inventory
+# Read in use host file location and store it, otherwise create directory inventory if it doesn't exist
+read -p "Where is your hosts file? (Leave blank for default): " user_hosts
+
+if [ ! "$user_hosts" = "" ]; then
+   inventory_file=$user_hosts
+else
+   if [ ! -d inventory ]; then
+      mkdir inventory
+   fi
 fi
 
 # Create or overwrite the inventory file
-echo -e "[linux_hosts]" > "$linux_file"
-echo -e "\n[windows_hosts]" > "$win_file"
-echo -e "\n[manager]" > "$man_file"
+touch "$linux_file"
+touch "$win_file"
+touch "$man_file"
 echo -e "" >> $inventory_file
 
 # Check if using private key log in
@@ -34,62 +40,91 @@ for host in "$@"; do
     
     case "$os_type" in
         l|linux)
-	    # Gets the ssh username and the ip address of the host
-	    # Uncomment the read and echo lines if you are not using private key login for ssh
-	    read -p "Enter SSH username: " ssh_username
-
+	    # Gets the ip, ssh username, and the password/private key
+	    read -p "Enter ip address: " ip
+	    read -p "Enter SSH username: " user
 	    read -p "Are you using private key login? (y/n): " priv
+	    
 	    if [ "$priv" = "y" ]; then
 	       private_key=1
 	       read -p "Enter absolute path to private key: " priv_path
+	       
+	       # Input information into linux yaml file
+	       host="$host" ip="$ip" yq -i '.linux.[env(host)].ansible_host = env(ip)' "$linux_file"
+	       host="$host" yq -i '.linux.[env(host)].ansible_home = "/home/${user}/"' "$linux_file"
+	       host="$host" user="$user" yq -i '.linux.[env(host)].ansible_home |= envsubst' "$linux_file"
+	       host="$host" user="$user" yq -i '.linux.[env(host)].ansible_user = env(user)' "$linux_file"
+	       host="$host" priv_path="$priv_path" yq -i '.linux.[env(host)].ansible_private_key_path = env(priv_path)' "$linux_file"
 	    else
-	       read -s -p "Enter SSH password" ssh_password
+	       read -s -p "Enter SSH password" password
 	       echo
+	       
+	       # Input information into linux yaml file
+	       host="$host" ip="$ip" yq -i '.linux.[env(host)].ansible_host = env(ip)' "$linux_file"
+	       host="$host" yq -i '.linux.[env(host)].ansible_home = "/home/${user}/"' "$linux_file"
+	       host="$host" user="$user" yq -i '.linux.[env(host)].ansible_home |= envsubst' "$linux_file"
+	       host="$host" user="$user" yq -i '.linux.[env(host)].ansible_user = env(user)' "$linux_file"
+	       host="$host" password="$password" yq -i '.linux.[env(host)].ansible_password = env(password)' "$linux_file"
 	    fi
 
-	    read -p "Enter ip address: " ip_addr
-
-	    # Check if the current host is the wazuh manager and put info into the appropriate file
+	    # Check if the current host is the wazuh manager to add it to the manager group
 	    if [ $got_man -eq 0 ]; then
 	       read -p "Is this the Wazuh Manager? (y/n): " ans
 	       if [ $ans = "y" ]; then
+		  # Only have one wazuh manager
 		  got_man=1
-	    	  
-                  # Check if using private key or password for login
+                  
+                  # Check if using private key or password for login then input the corresponding info into manager yaml
 		  if [ $private_key -eq "1" ]; then
-	             echo "$host ansible_host=$ip_addr ansible_home=/etc/$ssh_username/ ansible_user=$ssh_username" ansible_ssh_private_key_file="$priv_path" >> "$man_file"
-		     private_key=0
+	             host="$host" ip="$ip" yq -i '.manager.[env(host)].ansible_host = env(ip)' "$man_file"
+	             host="$host" yq -i '.linux.[env(host)].ansible_home = "/home/${user}/"' "$man_file"
+	             host="$host" user="$user" yq -i '.linux.[env(host)].ansible_home |= envsubst' "$man_file"
+	             host="$host" user="$user" yq -i '.manager.[env(host)].ansible_user = env(user)' "$man_file"
+	             host="$host" priv_path="$priv_path" yq -i '.manager.[env(host)].ansible_private_key_path = env(priv_path)' "$man_file"
 	          else
-		     echo "$host ansible_host=$ip_addr ansible_home=/etc/$ssh_username/ ansible_user=$ssh_username" ansible_password=$ssh_password >> "$man_file"
+	             host="$host" ip="$ip" yq -i '.manager.[env(host)].ansible_host = env(ip)' "$man_file"
+	             host="$host" yq -i '.linux.[env(host)].ansible_home = "/home/${user}/"' "$man_file"
+	             host="$host" user="$user" yq -i '.linux.[env(host)].ansible_home |= envsubst' "$man_file"
+	             host="$host" user="$user" yq -i '.manager.[env(host)].ansible_user = env(user)' "$man_file"
+	             host="$host" password="$password" yq -i '.linux.[env(host)].ansible_password = env(password)' "$man_file"
 	          fi
 	       fi
-	    fi
-
-	    # Check if using private key or password for login
-            if [ $private_key -eq "1" ]; then
-	       echo "$host ansible_host=$ip_addr ansible_home=/home/$ssh_username/ ansible_user=$ssh_username" ansible_ssh_private_key_file="$priv_path" >> "$linux_file"
-	       private_key=0
-	    else
-	       echo "$host ansible_host=$ip_addr ansible_home=/home/$ssh_username/ ansible_user=$ssh_username" ansible_password=$ssh_password >> "$linux_file"
 	    fi
 	    echo
             ;;
         w|windows)
 	    # Get the winrm username and password and the ip address to connect to
-	    read -p "Enter winrm username: " winrm_username
-            read -s -p "Enter winrm password: " winrm_password
+	    read -p "Enter winrm username: " user
+            read -s -p "Enter winrm password: " password
 	    echo
-	    read -p "Enter ip address: " ip_addr
+	    read -p "Enter ip address: " ip
 	    
 	    # Check if the current host is the wazuh manager and put info into the appropriate file
 	    if [ $got_man -eq 0 ]; then
 	       read -p "Is this the Wazuh Manager? (y/n): " ans
 	       if [ $ans = "y" ]; then
 		  got_man=1
-                  echo "$host ansible_host=$ip_addr ansible_home=C:\\Users\\$winrm_username\\ ansible_user=$winrm_username ansible_password=$winrm_password ansible_connection=winrm ansible_winrm_server_cert_validation=ignore" >> "$man_file"
+		  host="$host" ip="$ip" yq -i '.manager.[env(host)].ansible_host = env(ip)' "$man_file"
+		  host="$host" yq -i '.manager.[env(host)].ansible_home = "C:\\Users\\${user}\\"' "$man_file"
+		  host="$host" user="$user" yq -i '.manager.[env(host)].ansible_home |= envsubst' "$man_file"
+		  host="$host" user="$user" yq -i '.manager.[env(host)].ansible_user = env(user)' "$man_file"
+		  host="$host" password="$password" yq -i '.manager.[env(host)].ansible_password = env(password)' "$man_file"
+		  host="$host" yq -i '.manager.[env(host)].ansible_connection = winrm' "$man_file" 
+		  host="$host" yq -i '.manager.[env(host)].ansible_winrm_scheme = http' "$man_file"
+		  host="$host" yq -i '.manager.[env(host)].ansible_port = 5985' "$man_file"
+		  host="$host" yq -i '.manager.[env(host)].ansible_winrm_transport = ntlm' "$man_file"
 	       fi
 	    fi
-            echo "$host ansible_host=$ip_addr ansible_home=C:\\Users\\$winrm_username\\ ansible_user=$winrm_username ansible_password=$winrm_password ansible_connection=winrm ansible_winrm_server_cert_validation=ignore" >> "$win_file"
+
+            host="$host" ip="$ip" yq -i '.manager.[env(host)].ansible_host = env(ip)' "$win_file"
+	    host="$host" yq -i '.manager.[env(host)].ansible_home = "C:\\Users\\${user}\\"' "$win_file"
+	    host="$host" user="$user" yq -i '.manager.[env(host)].ansible_home |= envsubst' "$win_file"
+	    host="$host" user="$user" yq -i '.manager.[env(host)].ansible_user = env(user)' "$win_file"
+	    host="$host" password="$password" yq -i '.manager.[env(host)].ansible_password = env(password)' "$win_file"
+	    host="$host" yq -i '.manager.[env(host)].ansible_connection = winrm' "$win_file" 
+	    host="$host" yq -i '.manager.[env(host)].ansible_winrm_scheme = http' "$win_file"
+	    host="$host" yq -i '.manager.[env(host)].ansible_port = 5985' "$win_file"
+	    host="$host" yq -i '.manager.[env(host)].ansible_winrm_transport = ntlm' "$win_file"
             echo
 	    ;;
         *)
@@ -99,10 +134,8 @@ for host in "$@"; do
     esac
 done
 
-# Append the host info into the inventory/hosts file
-cat "$linux_file" >> "$inventory_file"
-cat "$win_file" >> "$inventory_file"
-cat "$man_file" >> "$inventory_file"
+# Update/Append the host info into the inventory/hosts file
+yq ea '. as $item ireduce ({}; . * $item )' $inventory_file $linux_file $man_file $win_file > $inventory_file
 
 # Remove intermediate files
 rm "$linux_file" "$win_file" "$man_file"
@@ -122,4 +155,4 @@ if [ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0"
 fi
 
 echo "Adding Inventory to ansible.cfg"
-sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(pwd)/inventory/hosts@g" /etc/ansible/ansible.cfg
+sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg

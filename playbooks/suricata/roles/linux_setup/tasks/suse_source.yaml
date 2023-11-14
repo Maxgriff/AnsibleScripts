@@ -1,9 +1,3 @@
-- name: Installing Dependencies on Suse
-  community.general.zypper:
-    name: "{{ suse_dependencies }}"
-    state: present
-    update_cache: true
-
 - name: Install Rust
   import_role: 
     name: rust_install

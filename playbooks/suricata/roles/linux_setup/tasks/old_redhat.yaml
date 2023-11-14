@@ -11,4 +11,4 @@
 - name: Adding Repository on RedHat/Centos/Fedora
   become: yes
   ansible.builtin.command:
-    cmd: yum -y copr enable {{ redhat_package }}
+    cmd: yum -y copr enable "{{ redhat_package }}"
