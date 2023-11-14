@@ -12,7 +12,7 @@
 vars:
   # more specific is better for alert accuracy and performance
   address-groups:
-    HOME_NET: "[{{ (ansible_default_ipv4.network + '/' + ansible_default_ipv4.netmask) | ansible.utils.ipaddr('net') }}]"
+    HOME_NET: "[{{ ansible_subnet }}]"
     #HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
     #HOME_NET: "[192.168.0.0/24]"
     #HOME_NET: "[10.0.0.0/8]"
@@ -315,7 +315,7 @@ outputs:
       append: yes
       #extended: yes     # enable this for extended logging information
       #custom: yes       # enable the custom logging format (defined by customformat)
-      #customformat: "%{%D-%H:%M:%S}t.%z %{X-Forwarded-For}i %H %m %h %u %s %B %a:%p -> %A:%P"
+      #customformat: "%{{"{"}}{{"%"}}D-%H:%M:%S}t.%z %{X-Forwarded-For}i %H %m %h %u %s %B %a:%p -> %A:%P"
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # a line based log of TLS handshake parameters (no alerts)
@@ -325,7 +325,7 @@ outputs:
       append: yes
       #extended: yes     # Log extended information like fingerprint
       #custom: yes       # enabled the custom logging format (defined by customformat)
-      #customformat: "%{%D-%H:%M:%S}t.%z %a:%p -> %A:%P %v %n %d %D"
+      #customformat: "%{{"{"}}{{"%"}}D-%H:%M:%S}t.%z %a:%p -> %A:%P %v %n %d %D"
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
       # output TLS transaction where the session is resumed using a
       # session id
@@ -591,7 +591,7 @@ logging:
 
 # Linux high speed capture support
 af-packet:
-  - interface: {{ ansible_default_ipv4.interface }}
+  - interface: {{ ansible_host }}
     # Number of receive threads. "auto" uses the number of cores
     #threads: auto
     # Default clusterid. AF_PACKET will load balance packets based on flow.
