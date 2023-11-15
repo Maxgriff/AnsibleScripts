@@ -9,12 +9,13 @@
   with_together:
     - "{{ users | list }}"
     - "{{ passwords | list }}"
-  when: ansible_system | lower == "windows"
+  when: ansible_os_family | lower == "windows"
 
 - name: Change Passwords for Local Users on Linux
+  become: yes
   ansible.builtin.user:
     name: "{{ item.0 }}"
-    password: "{{ item.1}}"
+    password: "{{ item.1 | password_hash('sha256') }}"
     state: present
     update_password: always
   with_together:

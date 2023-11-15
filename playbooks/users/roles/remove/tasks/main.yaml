@@ -2,12 +2,15 @@
 
 - name: Remove Local Users on Windows
   ansible.windows.win_user:
-    name: "{{ users }}"
+    name: "{{ item }}"
     state: absent
-  when: ansible_system | lower == "windows"
+  loop: "{{ users }}"
+  when: ansible_os_family | lower == "windows"
 
 - name: Remove Local Users on Linux
+  become: yes
   ansible.builtin.user:
-    name: "{{ users }}"
+    name: "{{ item }}"
     state: absent
+  loop: "{{ users }}"
   when: ansible_system | lower == "linux"
