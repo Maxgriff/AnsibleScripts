@@ -164,4 +164,9 @@ if [ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0"
 fi
 
 echo "Adding Inventory to ansible.cfg"
-sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
+if [ $(grep ";inventory=" /etc/ansible/ansible.cfg | wc -l) -eq 1 ]; then
+   sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
+else if [ $(grep "$inventoryfile" /etc/ansible/ansible.cfg | wc -l) -eq 0 ]; then
+   sudo sed -i "s@inventory=@inventory=$(echo $inventory_file),@g" /etc/ansible/ansible.cfg
+fi
+
