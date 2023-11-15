@@ -1,0 +1,13 @@
+# Removes Users
+
+- name: Remove Local Users on Windows
+  ansible.windows.win_user:
+    name: "{{ users }}"
+    state: absent
+  when: ansible_system | lower == "windows"
+
+- name: Remove Local Users on Linux
+  ansible.builtin.user:
+    name: "{{ users }}"
+    state: absent
+  when: ansible_system | lower == "linux"

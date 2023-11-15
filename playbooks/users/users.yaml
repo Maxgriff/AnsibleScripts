@@ -1,0 +1,7 @@
+# Main playbook to run all roles
+
+- name: Add Users
+  hosts: all
+  roles:
+    - create
+  tags: Create_Users

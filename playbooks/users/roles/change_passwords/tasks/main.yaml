@@ -1,0 +1,23 @@
+# Change the password for the users
+
+- name: Change Passwords for Local Users on Windows
+  ansible.windows.user:
+    name: "{{ item.0 }}"
+    password: "{{ item.1}}"
+    state: present
+    update_password: always
+  with_together:
+    - "{{ users | list }}"
+    - "{{ passwords | list }}"
+  when: ansible_system | lower == "windows"
+
+- name: Change Passwords for Local Users on Linux
+  ansible.builtin.user:
+    name: "{{ item.0 }}"
+    password: "{{ item.1}}"
+    state: present
+    update_password: always
+  with_together:
+    - "{{ users | list }}"
+    - "{{ passwords | list }}"
+  when: ansible_system | lower == "linux"
