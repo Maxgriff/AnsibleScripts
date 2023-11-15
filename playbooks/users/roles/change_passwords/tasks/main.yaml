@@ -1,7 +1,7 @@
 # Change the password for the users
 
 - name: Change Passwords for Local Users on Windows
-  ansible.windows.user:
+  ansible.windows.win_user:
     name: "{{ item.0 }}"
     password: "{{ item.1}}"
     state: present

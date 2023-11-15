@@ -4,4 +4,19 @@
   hosts: all
   roles:
     - create
-  tags: Create_Users
+  tags: 
+    - "Create Users"
+
+- name: Change Passwords
+  hosts: all
+  roles:
+    - change_passwords
+  tags: 
+    - "Change Passwords"
+
+- name: Remove Users
+  hosts: all
+  roles:
+    - remove
+  tags: 
+    - "Remove Users"
