@@ -12,7 +12,7 @@
 vars:
   # more specific is better for alert accuracy and performance
   address-groups:
-    HOME_NET: "[{{ ansible_subnet }}]"
+    HOME_NET: "[{{ subnet }}]"
     #HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
     #HOME_NET: "[192.168.0.0/24]"
     #HOME_NET: "[10.0.0.0/8]"
@@ -1925,7 +1925,7 @@ napatech:
 ## Configure Suricata to load Suricata-Update managed rules.
 ##
 
-default-rule-path: C:\\Program Files\\Suricata\\rules\\
+default-rule-path: {{ rules_path }} 
 
 rule-files:
  #- botcc.rules

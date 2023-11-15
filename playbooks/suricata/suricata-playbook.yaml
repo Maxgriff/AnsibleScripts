@@ -1,20 +1,26 @@
-# Install Suricata on Both Windows and Linux Systems
+# Install Suricata on Windows
 
 - name: Install Suricata on Windows
-  hosts: windows_hosts
+  hosts: windows
   become: yes
   become_method: runas
   become_user: Administrator
+  vars_files:
+    - group_vars/all.yaml
   tags:
-  - Windows
+    - Windows
   roles:
     - windows
 
+# Install Suricata on Linux Distros
+
 - name: Install Suricata on Linux
-  hosts: linux_hosts
+  hosts: linux
   become: yes
+  vars_files:
+    - group_vars/all.yaml
   tags:
-  - Linux
+    - Linux
   roles:
     - linux_setup
     - role: linux_configure

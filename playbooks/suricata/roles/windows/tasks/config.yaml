@@ -1,12 +1,12 @@
 - name: Configure suricata.yaml
-  template:
+  ansible.builtin.template:
     src: windows-suricata.j2
     dest: "{{ config_path }}" 
 
 - name: Download Default ET Rules
   ansible.windows.win_get_url:
-    url: https://rules.emergingthreats.net/open/suricata/emerging-all.rules
-    dest: "{{ rules_path }}" 
+    url: "{{ rules_download }}" 
+    dest: "{{ et_rules_path }}" 
 
 - name: Create Suricata Service
   ansible.windows.win_command: .\Suricata.exe -c suricata.yaml -i  {{ ansible_host }} --service-install
@@ -23,3 +23,4 @@
     - type: restart
       delay_ms: 100
   tags: Startup
+
