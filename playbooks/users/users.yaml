@@ -2,6 +2,7 @@
 
 - name: Add Users
   hosts: all
+  strategy: free
   roles:
     - create
   tags: 
@@ -9,6 +10,7 @@
 
 - name: Change Passwords
   hosts: all
+  strategy: free
   roles:
     - change_passwords
   tags: 
@@ -16,6 +18,7 @@
 
 - name: Remove Users
   hosts: all
+  strategy: free
   roles:
     - remove
   tags: 
