@@ -1,7 +1,20 @@
 # Tasks to Configure and Start Suricata on Linux
 
-- name: Configuring suricata.yaml
+- name: Gathering package facts
+  ansible.builtin.package_facts:
+    manager: auto
+    strategy: first
+
+- name: Configuring suricata.yaml for suricata v7
   template:
-    src: linux-suricata.j2
+    src: linux-suricata7.j2
     dest: "{{ config_path }}"
   notify: "restart suricata"
+  when: ansible_facts.packages['suricata'][0]['version'][0] == "7"
+ 
+- name: Configuring suricata.yaml for suricata v6
+  template:
+    src: linux-suricata6.j2
+    dest: "{{ config_path }}"
+  notify: "restart suricata"
+  when: ansible_facts.packages['suricata'][0]['version'][0] == "6"
