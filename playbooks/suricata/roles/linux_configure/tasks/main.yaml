@@ -5,16 +5,20 @@
     manager: auto
     strategy: first
 
+- name: Check Suricata Package Version
+  ansible.builtin.set_fact:
+    suricata_ver_index: "{{ ansible_facts.packages['suricata'][0]['version'].index('.') | int - 1 }}"
+
 - name: Configuring suricata.yaml for suricata v7
   template:
     src: linux-suricata7.j2
     dest: "{{ config_path }}"
   notify: "restart suricata"
-  when: ansible_facts.packages['suricata'][0]['version'][0] == "7"
+  when: ansible_facts.packages['suricata'][0]['version'][suricata_ver_index | int] == "7"
  
 - name: Configuring suricata.yaml for suricata v6
   template:
     src: linux-suricata6.j2
     dest: "{{ config_path }}"
   notify: "restart suricata"
-  when: ansible_facts.packages['suricata'][0]['version'][0] == "6"
+  when: ansible_facts.packages['suricata'][0]['version'][suricata_ver_index | int] == "6"
