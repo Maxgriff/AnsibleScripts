@@ -5,18 +5,18 @@
   ansible.builtin.shell:
     cmd: "{{ rust_cmd }}"
 
-- name: Running Rustup update on Suse
+- name: Running Rustup update
   become: no
   ansible.builtin.command:
     cmd: rustup update
 
-- name: Copying Rust Files on Suse
+- name: Copying Rust Files
   ansible.builtin.copy:
     src: "{{ cargo_bin_path }}"
     remote_src: true
     dest: /bin/
 
-- name: Copying Cargo Files on Suse
+- name: Copying Cargo Files
   ansible.builtin.copy:
     src: "{{ cargo_path }}"
     remote_src: true

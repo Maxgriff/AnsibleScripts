@@ -1,14 +1,18 @@
-# Variables for RedHat Setup
+# General Linux Variables
+home: '/home/{{ ansible_user }}/'
 
+# Variables for Ubuntu Setup
+debian_package: 'ppa:oisf/suricata-stable'
+
+# Variables for RedHat Setup
 redhat_package: '@oisf/suricata-7.0'
 
-
 # Variables for SUSE Setup
-
-suse_config_inputs: '--prefix{{"="}}/usr --sysconfdir{{"="}}/etc --localstatedir{{"="}}/var --enable-nfqueue --enable-lua'
-suse_suricata_dir: /home/ec2-user/suricata-6.0.15
-suse_suricata_download: https://www.openinfosecfoundation.org/download/suricata-6.0.15.tar.gz
-suse_dependencies: 
+config_inputs: '--prefix{{"="}}/usr --sysconfdir{{"="}}/etc --localstatedir{{"="}}/var --enable-nfqueue --enable-lua'
+suricata_source_dir: '/home/{{ ansible_user }}/suricata-6.0.15'
+#suricata_source_dir: suricata-6.0.15
+suricata_download: https://www.openinfosecfoundation.org/download/suricata-6.0.15.tar.gz
+dependencies: 
   - wget
   - tar
   - gcc

@@ -2,5 +2,5 @@
 
 - name: Adding Repository on Debian
   ansible.builtin.apt_repository:
-    repo: ppa:oisf/suricata-stable
+    repo: "{{ debian_package }}"
     state: present
