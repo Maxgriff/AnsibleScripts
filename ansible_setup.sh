@@ -1,10 +1,7 @@
 #!/bin/bash
 
 # Check if yq is installed
-if [ $(find / -name yq -type f 2>/dev/null | wc -l) -eq "0" ]; then
-    echo "Install yq before running script"
-    exit 1
-fi
+command -v yq >/dev/null 2>&1 || { echo >&2 "Install yq before running the script"; exit 1; }
 
 # Check if at least one host is provided
 if [ "$#" -eq 0 ]; then
