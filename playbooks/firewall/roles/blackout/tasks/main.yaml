@@ -15,7 +15,7 @@
         source: "{{ item }}"
         zone: "trusted"
         state: "enabled"
-      loop: "{{ team_IPs }}"
+      loop: "{{ team_ips }}"
 
     - name: use firewalld to block everything but ssh
       ansible.posix.firewalld:
@@ -54,10 +54,19 @@
         jump: "ACCEPT"
         protocol: "tcp"
         state: "present"
+      loop: "{{ team_ips }}"
 
     - name: reload iptables
       ansible.builtin.systemd_service:
         state: "reloaded"
         name: "iptables"
-
   when: ansible_system | lower == "linux"
+
+- name: do stuff in windows
+  when: ansible_system | lower == "windows"
+  block: 
+  - name: Allow team IPs into windows
+    community.windows.win_firewall_rule:
+      description: "Allow team machines into local machine"
+      remoteip: "{{ item }}"
+    loop: "{{ team_ips }}"
