@@ -1,0 +1,4 @@
+# Variables for all machines
+
+team_ips:
+  - test.ip.address.fix

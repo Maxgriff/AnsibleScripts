@@ -1,0 +1,35 @@
+# Do a network blackout on linux
+
+- name: Do stuff on Linux
+  block:
+  - name: gather linux packages
+    ansible.builtin.package_facts:
+      manager: auto
+      strategy: first
+
+  - block:
+    - name: use firewalld to add team IPs
+      ansible.posix.firewalld:
+      - permanent: true
+      - source: "{{ item }}"
+      - zone: "trusted"
+      - state: "enabled"
+      loop: "{{ team_IPs }}"
+
+    - name: use firewalld to block everything but ssh
+      ansible.posix.firewalld:
+      - permanent: true
+      - port: "22"
+      - state: "enabled"
+      - zone: "trusted"
+      - immediate: true
+
+    - name: use firewalld to change default zone to DROP
+      ansible.posix.firewalld:
+      - permanent: true
+      - zone: "public"
+      - state: "present"
+      - target: "DROP"
+    
+    when: '"firewalld" in ansible_facts.packages'
+  when: ansible_system | lower == "linux"
