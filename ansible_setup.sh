@@ -55,15 +55,33 @@ for host in "$@"; do
 	    if [ "$priv" = "y" ]; then
 			private_key=1
 			while true; do
-				read -e -p "Enter absolute path to private key (or leave blank to skip): " priv_path
-				if [ -z "$priv_path" ]; then
-					echo "Skipping private key configuration."
+				echo "Select a private key:"
+				for i in "${!used_priv_keys[@]}"; do
+					echo "$((i+1))) ${used_priv_keys[i]}"
+				done
+				echo "n) Enter a new private key path"
+				read -p "Your choice (number or 'n'): " choice
+
+				# Check if choice is a number and within the range of used keys
+				if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -le "${#used_priv_keys[@]}" ] && [ "$choice" -gt 0 ]; then
+					priv_path="${used_priv_keys[$((choice-1))]}"
+					echo "Selected private key: $priv_path"
 					break
-				elif [ -f "$priv_path" ] && [ -r "$priv_path" ]; then
-					echo "Private key path is valid."
-					break
+				elif [ "$choice" = "n" ]; then
+					read -e -p "Enter new private key path: " priv_path
+					priv_path=$(realpath "$priv_path") # Convert to absolute path
+					if [ -z "$priv_path" ]; then
+						echo "Skipping private key configuration."
+						break
+					elif [ -f "$priv_path" ] && [ -r "$priv_path" ]; then
+						echo "Private key path is valid."
+						used_priv_keys+=("$priv_path") # Add the new key path to the array
+						break
+					else
+						echo "Invalid path or file not readable. Please try again."
+					fi
 				else
-					echo "Invalid path or file not readable. Please try again."
+					echo "Invalid choice. Please try again."
 				fi
 			done
 
