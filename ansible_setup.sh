@@ -55,11 +55,11 @@ for host in "$@"; do
 	    if [ "$priv" = "y" ]; then
 			private_key=1
 			while true; do
-				echo "Select a private key:"
+				echo -e "Select a private key:\n"
 				for i in "${!used_priv_keys[@]}"; do
 					echo "$((i+1))) ${used_priv_keys[i]}"
 				done
-				echo -e "\nn) Enter a new private key path\n"
+				echo -e "n) Enter a new private key path\n"
 				read -p "Your choice (number or 'n'): " choice
 
 				# Check if choice is a number and within the range of used keys
