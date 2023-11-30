@@ -1,6 +1,7 @@
 # Do a network blackout on linux
 
 - name: Do stuff on Linux
+  when: ansible_system | lower == "linux"
   block:
   - name: gather linux packages
     ansible.builtin.package_facts:
@@ -15,18 +16,31 @@
     when: '"iptables" in ansible_facts.packages'
     import_tasks: iptables.yaml
 
-  when: ansible_system | lower == "linux"
-
 - name: do stuff in windows
   when: ansible_system | lower == "windows"
   block: 
   - name: Allow team IPs into windows
     community.windows.win_firewall_rule:
+      name: "Team IPs"
       description: "Allow team machines into local machine"
       remoteip: "{{ item }}"
     loop: "{{ team_ips }}"
 
-  - name: Add default drop rule
+  - name: "Add default drop rule part 1"
+    community.windows.win_firewall_rule:
+      name: "blackout"
+      description: "Block all ports below 5985"
+      localport: 0-5984
+      action: "block"
+  
+  - name: "Add default drop rule part 2"
+    community.windows.win_firewall_rule:
+      name: "blackout"
+      description: "Block all ports above 5985"
+      localport: 5986-65535
+      action: "block"
+
+  - name: Add default drop policy
     community.windows.win_firewall:
       profiles:
       - "Domain"
