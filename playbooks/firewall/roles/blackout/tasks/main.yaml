@@ -8,58 +8,13 @@
       strategy: first
 
   - name: Use Firewalld
-    block:
-    - name: use firewalld to add team IPs
-      ansible.posix.firewalld:
-        permanent: true
-        source: "{{ item }}"
-        zone: "trusted"
-        state: "enabled"
-      loop: "{{ team_ips }}"
-
-    - name: use firewalld to block everything but ssh
-      ansible.posix.firewalld:
-        permanent: true
-        port: "22"
-        state: "enabled"
-        zone: "trusted"
-
-    - name: use firewalld to change default zone to DROP
-      ansible.posix.firewalld:
-        permanent: true
-        zone: "public"
-        state: "present"
-        target: "DROP"
-
-    - name: reload firewalld
-      ansible.builtin.systemd_service:
-        state: "reloaded"
-        name: "firewalld"
-    
     when: '"firewalld" in ansible_facts.packages'
+    import_tasks: firewalld.yaml
 
   - name: Do stuff with iptables
     when: '"iptables" in ansible_facts.packages'
-    block:
-    - name: flush current rules
-      ansible.builtin.iptables:
-        flush: true
+    import_tasks: iptables.yaml
 
-    - name: use iptables to only allow team IPs into network
-      ansible.builtin.iptables:
-        action: "append"
-        chain: "INPUT"
-        destination_port: "22"
-        source: "{{ item }}"
-        jump: "ACCEPT"
-        protocol: "tcp"
-        state: "present"
-      loop: "{{ team_ips }}"
-
-    - name: reload iptables
-      ansible.builtin.systemd_service:
-        state: "reloaded"
-        name: "iptables"
   when: ansible_system | lower == "linux"
 
 - name: do stuff in windows
@@ -70,3 +25,12 @@
       description: "Allow team machines into local machine"
       remoteip: "{{ item }}"
     loop: "{{ team_ips }}"
+
+  - name: Add default drop rule
+    community.windows.win_firewall:
+      profiles:
+      - "Domain"
+      - "Private"
+      - "Public"
+      state: "enabled"
+      inbound_action: "block"

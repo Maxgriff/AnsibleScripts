@@ -1,0 +1,19 @@
+# Add Firewall Rules For All Systems
+
+- name: Add Firewall Rules on Linux
+  when: "ansible_os_family | lower == 'linux'"
+  block:
+  - name: Gather Package Facts
+    ansible.builtin.package_facts:
+      manager: auto
+      strategy: first
+
+  - name: Use Firewalld
+    when: '"firewalld in ansible_facts.package"'
+    import_roles: firewalld.yaml
+  
+  - name: Use IPtables
+    when: '"iptables" in ansible_facts.package'
+    import_roles: iptables.yaml
+
+- name: Add Firewall Rules on Windows

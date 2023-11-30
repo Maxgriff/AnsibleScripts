@@ -14,4 +14,4 @@
   roles:
     - add_rules
   tags:
-    - setup
+    - setup_firewall

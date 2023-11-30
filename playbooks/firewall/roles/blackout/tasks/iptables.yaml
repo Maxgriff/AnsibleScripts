@@ -1,0 +1,21 @@
+# Implement Network Blackout with IPTables
+
+- name: flush current rules
+  ansible.builtin.iptables:
+    flush: true
+
+- name: use iptables to only allow team IPs into network
+  ansible.builtin.iptables:
+    action: "append"
+    chain: "INPUT"
+    destination_port: "22"
+    source: "{{ item }}"
+    jump: "ACCEPT"
+    protocol: "tcp"
+    state: "present"
+  loop: "{{ team_ips }}"
+
+- name: reload iptables
+  ansible.builtin.systemd_service:
+    state: "reloaded"
+    name: "iptables"
