@@ -22,7 +22,7 @@ read -p "Where is your hosts file? (Leave blank for default): " user_hosts
 
 if [ ! "$user_hosts" = "" ]; then
    inventory_file=$user_hosts
-   if [ -f $inventory_file ]; then
+   if [ ! -f $inventory_file ]; then
       echo "File $inventory_file does not exist"
       exit 1
    fi
