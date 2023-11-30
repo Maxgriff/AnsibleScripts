@@ -18,7 +18,7 @@ got_man=0
 private_key=0
 
 # Read in use host file location and store it, otherwise create directory inventory if it doesn't exist
-read -p "Where is your hosts file? (Leave blank for default): " user_hosts
+read -p "Where is your hosts file? (Blank for default: $inventory_file): " user_hosts
 
 if [ ! "$user_hosts" = "" ]; then
    inventory_file=$user_hosts
@@ -59,7 +59,7 @@ for host in "$@"; do
 				for i in "${!used_priv_keys[@]}"; do
 					echo "$((i+1))) ${used_priv_keys[i]}"
 				done
-				echo "n) Enter a new private key path"
+				echo -e "\nn) Enter a new private key path\n"
 				read -p "Your choice (number or 'n'): " choice
 
 				# Check if choice is a number and within the range of used keys
