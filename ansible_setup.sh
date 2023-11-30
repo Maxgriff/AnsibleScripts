@@ -18,11 +18,11 @@ got_man=0
 private_key=0
 
 # Read in use host file location and store it, otherwise create directory inventory if it doesn't exist
-read -p "Where is your hosts file? (Leave blank for default): " user_hosts
+read -p "Where is your hosts file? (Blank for default: $inventory_file): " user_hosts
 
 if [ ! "$user_hosts" = "" ]; then
    inventory_file=$user_hosts
-   if [ -f $inventory_file ]; then
+   if [ ! -f $inventory_file ]; then
       echo "File $inventory_file does not exist"
       exit 1
    fi
@@ -53,13 +53,44 @@ for host in "$@"; do
 	    read -p "Are you using private key login? (y/n): " priv
 	    
 	    if [ "$priv" = "y" ]; then
-	       private_key=1
-	       read -p "Enter absolute path to private key: " priv_path
-	       
-	       # Input information into linux yaml file
-	       host="$host" ip="$ip" yq -i '.linux.hosts.[env(host)].ansible_host = env(ip)' "$linux_file"
-	       host="$host" user="$user" yq -i '.linux.hosts.[env(host)].ansible_user = env(user)' "$linux_file"
-	       host="$host" priv_path="$priv_path" yq -i '.linux.hosts.[env(host)].ansible_private_key_path = env(priv_path)' "$linux_file"
+			private_key=1
+			while true; do
+				echo -e "Select a private key:\n"
+				for i in "${!used_priv_keys[@]}"; do
+					echo "$((i+1))) ${used_priv_keys[i]}"
+				done
+				echo -e "n) Enter a new private key path\n"
+				read -p "Your choice (number or 'n'): " choice
+
+				# Check if choice is a number and within the range of used keys
+				if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -le "${#used_priv_keys[@]}" ] && [ "$choice" -gt 0 ]; then
+					priv_path="${used_priv_keys[$((choice-1))]}"
+					echo "Selected private key: $priv_path"
+					break
+				elif [ "$choice" = "n" ]; then
+					read -e -p "Enter new private key path: " priv_path
+					priv_path=$(realpath "$priv_path") # Convert to absolute path
+					if [ -z "$priv_path" ]; then
+						echo "Skipping private key configuration."
+						break
+					elif [ -f "$priv_path" ] && [ -r "$priv_path" ]; then
+						echo "Private key path is valid."
+						used_priv_keys+=("$priv_path") # Add the new key path to the array
+						break
+					else
+						echo "Invalid path or file not readable. Please try again."
+					fi
+				else
+					echo "Invalid choice. Please try again."
+				fi
+			done
+
+			if [ -n "$priv_path" ]; then
+				# Input information into linux yaml file
+				host="$host" ip="$ip" yq -i '.linux.hosts.[env(host)].ansible_host = env(ip)' "$linux_file"
+				host="$host" user="$user" yq -i '.linux.hosts.[env(host)].ansible_user = env(user)' "$linux_file"
+				host="$host" priv_path="$priv_path" yq -i '.linux.hosts.[env(host)].ansible_private_key_file = env(priv_path)' "$linux_file"
+			fi
 	    else
 	       read -s -p "Enter SSH password" password
 	       echo
@@ -81,7 +112,7 @@ for host in "$@"; do
 		  if [ $private_key -eq "1" ]; then
 	             host="$host" ip="$ip" yq -i '.manager.hosts.[env(host)].ansible_host = env(ip)' "$man_file"
 	             host="$host" user="$user" yq -i '.manager.hosts.[env(host)].ansible_user = env(user)' "$man_file"
-	             host="$host" priv_path="$priv_path" yq -i '.manager.hosts.[env(host)].ansible_private_key_path = env(priv_path)' "$man_file"
+	             host="$host" priv_path="$priv_path" yq -i '.manager.hosts.[env(host)].ansible_private_key_file = env(priv_path)' "$man_file"
 	          else
 	             host="$host" ip="$ip" yq -i '.manager.hosts.[env(host)].ansible_host = env(ip)' "$man_file"
 	             host="$host" user="$user" yq -i '.manager.hosts.[env(host)].ansible_user = env(user)' "$man_file"
@@ -151,9 +182,14 @@ if [ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0"
 fi
 
 echo "Adding Inventory to ansible.cfg"
-if [ $(grep ";inventory=" /etc/ansible/ansible.cfg | wc -l) -eq 1 ]; then
-   sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
-else if [ $(grep "$inventoryfile" /etc/ansible/ansible.cfg | wc -l) -eq 0 ]; then
-   sudo sed -i "s@inventory=@inventory=$(echo $inventory_file),@g" /etc/ansible/ansible.cfg
-fi
 
+commented_inventory_lines=$(grep -E "^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=" /etc/ansible/ansible.cfg | wc -l)
+
+# Check if inventory setting is commented with either ';' or '#'
+if [ $commented_inventory_lines -eq 1 ]; then
+   # Uncomment the inventory line and update it with the new inventory file path
+   sudo sed -i "s@^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=.*@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
+elif [ $commented_inventory_lines -eq 0 ]; then
+   # Append the new inventory file path if it's not already present
+   sudo sed -i "s@inventory[[:space:]]*=.*@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
+fi
