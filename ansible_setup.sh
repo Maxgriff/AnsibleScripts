@@ -181,6 +181,11 @@ if [ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0"
    ansible-galaxy collection install ansible.windows
 fi
 
+# Make sure ansible.posix is installed with ansible
+if [ $(ansible-galaxy collection list | grep ansible\\\.posix | wc -l) -eq "0" ]; then
+   ansible-galaxy collection install ansible.posix
+fi
+
 echo "Adding Inventory to ansible.cfg"
 
 commented_inventory_lines=$(grep -E "^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=" /etc/ansible/ansible.cfg | wc -l)
