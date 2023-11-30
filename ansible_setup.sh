@@ -53,13 +53,26 @@ for host in "$@"; do
 	    read -p "Are you using private key login? (y/n): " priv
 	    
 	    if [ "$priv" = "y" ]; then
-	       private_key=1
-	       read -p "Enter absolute path to private key: " priv_path
-	       
-	       # Input information into linux yaml file
-	       host="$host" ip="$ip" yq -i '.linux.hosts.[env(host)].ansible_host = env(ip)' "$linux_file"
-	       host="$host" user="$user" yq -i '.linux.hosts.[env(host)].ansible_user = env(user)' "$linux_file"
-	       host="$host" priv_path="$priv_path" yq -i '.linux.hosts.[env(host)].ansible_private_key_file = env(priv_path)' "$linux_file"
+			private_key=1
+			while true; do
+				read -e -p "Enter absolute path to private key (or leave blank to skip): " priv_path
+				if [ -z "$priv_path" ]; then
+					echo "Skipping private key configuration."
+					break
+				elif [ -f "$priv_path" ] && [ -r "$priv_path" ]; then
+					echo "Private key path is valid."
+					break
+				else
+					echo "Invalid path or file not readable. Please try again."
+				fi
+			done
+
+			if [ -n "$priv_path" ]; then
+				# Input information into linux yaml file
+				host="$host" ip="$ip" yq -i '.linux.hosts.[env(host)].ansible_host = env(ip)' "$linux_file"
+				host="$host" user="$user" yq -i '.linux.hosts.[env(host)].ansible_user = env(user)' "$linux_file"
+				host="$host" priv_path="$priv_path" yq -i '.linux.hosts.[env(host)].ansible_private_key_file = env(priv_path)' "$linux_file"
+			fi
 	    else
 	       read -s -p "Enter SSH password" password
 	       echo
