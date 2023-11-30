@@ -182,9 +182,14 @@ if [ $(ansible-galaxy collection list | grep ansible\\\.windows | wc -l) -eq "0"
 fi
 
 echo "Adding Inventory to ansible.cfg"
-if [ $(grep ";inventory=" /etc/ansible/ansible.cfg | wc -l) -eq 1 ]; then
-   sudo sed -i "s@;inventory=/etc/ansible/hosts@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
-else if [ $(grep "$inventoryfile" /etc/ansible/ansible.cfg | wc -l) -eq 0 ]; then
-   sudo sed -i "s@inventory=@inventory=$(echo $inventory_file),@g" /etc/ansible/ansible.cfg
+
+# Check if inventory setting is commented with either ';' or '#'
+if [ $(grep -E "^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=" /etc/ansible/ansible.cfg | wc -l) -eq 1 ]; then
+   # Uncomment the inventory line and update it with the new inventory file path
+   sudo sed -i "s@^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=/etc/ansible/hosts@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
+elif [ $(grep "inventory[[:space:]]*=$(echo $inventory_file)" /etc/ansible/ansible.cfg | wc -l) -eq 0 ]; then
+   # Append the new inventory file path if it's not already present
+   sudo sed -i "s@inventory[[:space:]]*=@inventory=$(echo $inventory_file),@g" /etc/ansible/ansible.cfg
 fi
+
 
