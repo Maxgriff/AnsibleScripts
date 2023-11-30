@@ -59,7 +59,7 @@ for host in "$@"; do
 	       # Input information into linux yaml file
 	       host="$host" ip="$ip" yq -i '.linux.hosts.[env(host)].ansible_host = env(ip)' "$linux_file"
 	       host="$host" user="$user" yq -i '.linux.hosts.[env(host)].ansible_user = env(user)' "$linux_file"
-	       host="$host" priv_path="$priv_path" yq -i '.linux.hosts.[env(host)].ansible_private_key_path = env(priv_path)' "$linux_file"
+	       host="$host" priv_path="$priv_path" yq -i '.linux.hosts.[env(host)].ansible_private_key_file = env(priv_path)' "$linux_file"
 	    else
 	       read -s -p "Enter SSH password" password
 	       echo
@@ -81,7 +81,7 @@ for host in "$@"; do
 		  if [ $private_key -eq "1" ]; then
 	             host="$host" ip="$ip" yq -i '.manager.hosts.[env(host)].ansible_host = env(ip)' "$man_file"
 	             host="$host" user="$user" yq -i '.manager.hosts.[env(host)].ansible_user = env(user)' "$man_file"
-	             host="$host" priv_path="$priv_path" yq -i '.manager.hosts.[env(host)].ansible_private_key_path = env(priv_path)' "$man_file"
+	             host="$host" priv_path="$priv_path" yq -i '.manager.hosts.[env(host)].ansible_private_key_file = env(priv_path)' "$man_file"
 	          else
 	             host="$host" ip="$ip" yq -i '.manager.hosts.[env(host)].ansible_host = env(ip)' "$man_file"
 	             host="$host" user="$user" yq -i '.manager.hosts.[env(host)].ansible_user = env(user)' "$man_file"
