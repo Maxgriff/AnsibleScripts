@@ -15,7 +15,9 @@
     state: "present"
   loop: "{{ team_ips }}"
 
-- name: reload iptables
-  ansible.builtin.systemd_service:
-    state: "reloaded"
-    name: "iptables"
+- name: use iptables to add default drop rule
+  ansible.builtin.iptables:
+    action: "append"
+    chain: "INPUT"
+    jump: "REJECT"
+    state: "present"

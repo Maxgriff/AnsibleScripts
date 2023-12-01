@@ -16,7 +16,3 @@
     state: "present"
     target: "DROP"
 
-- name: reload firewalld
-  ansible.builtin.systemd_service:
-    state: "reloaded"
-    name: "firewalld"

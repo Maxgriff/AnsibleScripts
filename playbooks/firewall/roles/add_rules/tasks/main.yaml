@@ -10,10 +10,10 @@
 
   - name: Use Firewalld
     when: '"firewalld in ansible_facts.package"'
-    import_roles: firewalld.yaml
+    import_tasks: firewalld.yaml
   
   - name: Use IPtables
     when: '"iptables" in ansible_facts.package'
-    import_roles: iptables.yaml
+    import_tasks: iptables.yaml
 
 - name: Add Firewall Rules on Windows

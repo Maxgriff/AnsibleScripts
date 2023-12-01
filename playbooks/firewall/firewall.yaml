@@ -9,9 +9,9 @@
     - network_blackout
 
 # Distribute host based Firewall Rules
-- name: Add Firewall Rules
-  hosts: all
-  roles:
-    - add_rules
-  tags:
-    - setup_firewall
+#- name: Add Firewall Rules
+#  hosts: all
+#  roles:
+#    - add_rules
+#  tags:
+#    - setup_firewall

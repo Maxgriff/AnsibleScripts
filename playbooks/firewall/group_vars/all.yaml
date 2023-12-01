@@ -1,4 +1,4 @@
 # Variables for all machines
 
 team_ips:
-  - test.ip.address.fix
+  - 10.10.0.22
