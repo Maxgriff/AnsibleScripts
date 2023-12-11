@@ -1,5 +1,16 @@
 # Implement Network Blackout with IPTables
 
+- name: save current rules
+  community.general.iptables_state:
+    state: "saved"
+    path: "/tmp/{{ inventory_hostname }}_init_rules"
+
+- name: grab current rules
+  ansible.builtin.fetch:
+    flat: true
+    src: "/tmp/{{ inventory_hostname }}_init_rules"
+    dest: "roles/add_rules/files/'
+
 - name: flush current rules
   ansible.builtin.iptables:
     flush: true
