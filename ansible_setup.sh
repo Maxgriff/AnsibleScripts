@@ -186,15 +186,18 @@ if [ $(ansible-galaxy collection list | grep ansible\\\.posix | wc -l) -eq "0" ]
    ansible-galaxy collection install ansible.posix
 fi
 
+echo "Creating ansible.cfg"
+ansible-config init --disabled > ~/.ansible.cfg
+
 echo "Adding Inventory to ansible.cfg"
 
-commented_inventory_lines=$(grep -E "^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=" /etc/ansible/ansible.cfg | wc -l)
+commented_inventory_lines=$(grep -E "^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=" ~/.ansible.cfg | wc -l)
 
 # Check if inventory setting is commented with either ';' or '#'
 if [ $commented_inventory_lines -eq 1 ]; then
    # Uncomment the inventory line and update it with the new inventory file path
-   sudo sed -i "s@^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=.*@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
+   sudo sed -i "s@^[[:space:]]*[;#][[:space:]]*inventory[[:space:]]*=.*@inventory=$(echo $inventory_file)@g"  ~/.ansible.cfg
 elif [ $commented_inventory_lines -eq 0 ]; then
    # Append the new inventory file path if it's not already present
-   sudo sed -i "s@inventory[[:space:]]*=.*@inventory=$(echo $inventory_file)@g" /etc/ansible/ansible.cfg
+   sudo sed -i "s@inventory[[:space:]]*=.*@inventory=$(echo $inventory_file)@g"  ~/.ansible.cfg
 fi
