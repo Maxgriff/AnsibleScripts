@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# Check if yq is installed
-command -v yq >/dev/null 2>&1 || { echo >&2 "Install yq before running the script"; exit 1; }
-
 # Check if at least one host is provided
 if [ "$#" -eq 0 ]; then
     echo "Usage: $0 host1 [host2 ... hostN]"
