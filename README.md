@@ -13,5 +13,8 @@ If you already have an inventory hosts.yaml file, then just run the command ```a
 
 If you do not have a hosts file yet, run anisble_setup.sh as the user you will run ansible with and follow the instructions in the script.
 
+## Windows Node Setup
+If any of the machines you want to remotely control run windows, then you must have python installed.  I am currently working on a setup playbook that will go in and optimize the environment for ansible to make it easier and quicker to use.  In the meantime, you will need to log on to each of the windows machines and run python_install.ps1 in powershell.  This installs both python and npcap (needed for suricata). 
+
 You are now ready to run the ansible playbooks!
 Specific documentation for each playbook is in the playbook directory :)
