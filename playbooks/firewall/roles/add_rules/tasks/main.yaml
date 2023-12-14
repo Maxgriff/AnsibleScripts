@@ -44,6 +44,11 @@
       name: "Winrm"
       state: "present"
 
+  - name: Enable RDP rule
+    community.windows.win_firewall_rule:
+      name: "RDP"
+      state: "present"
+
   - name: Add default drop policy and enable firewall
     community.windows.win_firewall:
       profiles:
