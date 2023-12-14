@@ -3,6 +3,7 @@
 # Allow only the team IP Addresses into the network
 - name: Network Blackout
   hosts: all
+  strategy: free
   roles:
     - blackout
   tags:
@@ -11,6 +12,7 @@
 # Distribute host based Firewall Rules
 - name: Add Firewall Rules
   hosts: all
+  strategy: free
   roles:
     - add_rules
   tags:
