@@ -1,0 +1,15 @@
+# Setup Ansible to run on windows
+
+- name: Windows Setup
+  strategy: free
+  hosts: windows
+  gather_facts: no
+  tasks:
+    - name: Download python3
+      ansible.builtin.raw: Invoke-WebRequest -Uri https://www.python.org/ftp/python/3.7.0/python-3.7.0.exe -OutFile .\python-3.7.0.exe
+
+    - name: Install python3
+      ansible.builtin.raw: .\python-3.7.0.exe /passive InstallAllUsers=1 InstallLauncherAllUsers=1 Include_test=0
+
+    - name: Optimize powershell
+      ansible.builtin.script: optimize.ps1
