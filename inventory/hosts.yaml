@@ -1,0 +1,59 @@
+windows:
+  hosts:
+    windows_2016:
+      ansible_host: 10.10.0.21
+      ansible_user: Administrator
+      ansible_password: nUH@c=DS@&VSUAA)Y7V6)M52fW*iLway
+      ansible_connection: winrm
+      ansible_winrm_scheme: http
+      ansible_port: 5985
+      ansible_winrm_transport: ntlm
+    windows_2019:
+      ansible_host: 10.10.0.22
+      ansible_user: Administrator
+      ansible_password: N.vfQ;JaG2df%PQ;KZFe*XsLelle(J@v
+      ansible_connection: winrm
+      ansible_winrm_scheme: http
+      ansible_port: 5985
+      ansible_winrm_transport: ntlm
+    windows_2022:
+      ansible_host: 10.10.0.20
+      ansible_user: Administrator
+      ansible_password: J2T=JF-lM6Xj3URMVIp*aux);GUlCXPX
+      ansible_connection: winrm
+      ansible_winrm_scheme: http
+      ansible_port: 5985
+      ansible_winrm_transport: ntlm
+linux:
+  hosts:
+    ubuntu22:
+      ansible_host: 10.10.0.28
+      ansible_user: ubuntu
+      ansible_private_key_path: /home/max/BlueTeam/logging.pem
+    ubuntu20:
+      ansible_host: 10.10.0.27
+      ansible_user: ubuntu
+      ansible_private_key_path: /home/max/BlueTeam/logging.pem
+    ubuntu16:
+      ansible_host: 10.10.0.26
+      ansible_user: ubuntu
+      ansible_private_key_path: /home/max/BlueTeam/logging.pem
+    ubuntu18:
+      ansible_host: 10.10.0.25
+      ansible_user: ubuntu
+      ansible_private_key_path: /home/max/BlueTeam/logging.pem
+    centos:
+      ansible_host: 10.10.0.24
+      ansible_user: centos
+      ansible_private_key_path: /home/max/BlueTeam/logging.pem
+    suse:
+      ansible_host: 10.10.0.23
+      ansible_user: ec2-user
+      ansible_private_key_path: /home/max/BlueTeam/logging.pem
+manager:
+  hosts:
+    ubuntu20:
+      ansible_host: 10.10.0.27
+      ansible_user: ubuntu
+      ansible_private_key_path: /home/max/BlueTeam/logging.pem
+    
