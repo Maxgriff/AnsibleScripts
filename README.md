@@ -9,9 +9,7 @@ Make sure that you are installing ansible and not ansible-core.  The playbooks i
 
 If you are not running ansible version >= 2.10 and you used the package manager to install, then make sure you have the most up to date repository for ansible and reinstall.  These playbooks are built with >= 2.10 compatibility in mind and will not work with earlier versions.
 # Ansible Setup
-If you already have an inventory hosts.yaml file, then just run the command ```ansible-config init --disabled > ~/.ansible.cfg``` as the user you will run ansible with.  Then replace the line ```;inventory=...``` with ```inventory=<Host_File_Path>```.  Ansible is now fully configured and you can move on to the next step.
-
-If you do not have a hosts file yet, run anisble_setup.sh as the user you will run ansible with and follow the instructions in the script.
+You can simply run `ansible\_setup.sh` and follow the instructions
 
 ## Windows Node Setup
 If any of the machines you want to remotely control run windows, then you must have python installed.  I am currently working on a setup playbook that will go in and optimize the environment for ansible to make it easier and quicker to use.  In the meantime, you will need to log on to each of the windows machines and run python_install.ps1 in powershell.  This installs both python and npcap (needed for suricata). 
