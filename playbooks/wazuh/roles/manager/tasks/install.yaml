@@ -1,5 +1,6 @@
 - name: enable internet access
   ansible.builtin.script: enable_internet.sh
+  ignore_errors: true
 
 - name: Download script
   ansible.builtin.get_url:
@@ -18,11 +19,12 @@
   become: no
   local_action:
     module: ansible.builtin.copy
-    content: "{{ wazuh_result }}"
+    content: "{% for line in wazuh_result.stdout_lines %}{% if 'User' in line or 'Password' in line %}{{ line }}\n{% endif %}{% endfor %}"
     dest: wazuh_creds.txt
 
 - name: disable internet access
   ansible.builtin.script: disable_internet.sh
+  ignore_errors: true
 
 - name: Open wazuh ports
   ansible.builtin.iptables:
@@ -41,22 +43,3 @@
     source_port: "{{ item }}"
     jump: "ACCEPT"
   loop: "{{ wazuh_ports }}"
-
-- name: Open mattermost port inbound
-  ansible.builtin.iptables:
-    action: "insert"
-    chain: "INPUT"
-    protocol: "tcp"
-    source_port: 443
-#    source: "{{ mattermost_ip }}"
-    ctstate: "ESTABLISHED"
-    jump: "ACCEPT"
-
-- name: Open mattermost port outbound
-  ansible.builtin.iptables:
-    action: "insert"
-    chain: "OUTPUT"
-    protocol: "tcp"
-    destination_port: 443
-#    destination: "{{ mattermost_ip }}"
-    jump: "ACCEPT"
